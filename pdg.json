@@ -1,0 +1,609 @@
+{
+  "vertices": [{
+  "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+  "line": 21,
+  "name": "input_io.a",
+  "kind": "IO"
+},{
+  "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+  "line": 21,
+  "name": "input_io.b",
+  "kind": "IO"
+},{
+  "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+  "line": 21,
+  "name": "input_io.loadValues",
+  "kind": "IO"
+},{
+  "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+  "line": 21,
+  "name": "output_io.result",
+  "kind": "IO"
+},{
+  "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+  "line": 21,
+  "name": "output_io.resultIsValid",
+  "kind": "IO"
+},{
+  "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+  "line": 29,
+  "name": "defreg_x",
+  "kind": "DataDefinition"
+},{
+  "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+  "line": 30,
+  "name": "defreg_y",
+  "kind": "DataDefinition"
+},{
+  "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+  "line": 32,
+  "name": "defnode__tmp_T",
+  "kind": "DataDefinition"
+},{
+  "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+  "line": 32,
+  "name": "defnode_tmp",
+  "kind": "DataDefinition"
+},{
+  "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+  "line": 33,
+  "name": "defnode__T",
+  "kind": "DataDefinition"
+},{
+  "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+  "line": 33,
+  "name": "cond_on_[_T]",
+  "kind": "ControlFlow"
+},{
+  "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+  "line": 34,
+  "name": "defnode__myTmpVal_T",
+  "kind": "DataDefinition"
+},{
+  "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+  "line": 34,
+  "name": "defnode_myTmpVal",
+  "kind": "DataDefinition"
+},{
+  "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+  "line": 36,
+  "name": "connect_[x]_with_[myTmpVal]",
+  "kind": "Connection"
+},{
+  "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+  "line": 38,
+  "name": "defnode__myTmpVal_T_1",
+  "kind": "DataDefinition"
+},{
+  "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+  "line": 38,
+  "name": "defnode_myTmpVal_1",
+  "kind": "DataDefinition"
+},{
+  "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+  "line": 39,
+  "name": "defwire_myTmpVal3",
+  "kind": "Definition"
+},{
+  "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+  "line": 40,
+  "name": "defwire_myTmpVal4",
+  "kind": "Definition"
+},{
+  "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+  "line": 41,
+  "name": "connect_[myTmpVal3]_with_[myTmpVal_1]",
+  "kind": "Connection"
+},{
+  "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+  "line": 42,
+  "name": "connect_[myTmpVal3]_with_[y]",
+  "kind": "Connection"
+},{
+  "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+  "line": 43,
+  "name": "connect_[myTmpVal4]_with_[myTmpVal3]",
+  "kind": "Connection"
+},{
+  "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+  "line": 44,
+  "name": "defnode__y_T",
+  "kind": "DataDefinition"
+},{
+  "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+  "line": 44,
+  "name": "defnode__y_T_1",
+  "kind": "DataDefinition"
+},{
+  "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+  "line": 44,
+  "name": "connect_[y]_with_[_y_T_1]",
+  "kind": "Connection"
+},{
+  "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+  "line": 47,
+  "name": "cond_on_[io.loadValues]",
+  "kind": "ControlFlow"
+},{
+  "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+  "line": 47,
+  "name": "connect_[x]_with_[io.a]",
+  "kind": "Connection"
+},{
+  "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+  "line": 47,
+  "name": "connect_[y]_with_[io.b]",
+  "kind": "Connection"
+},{
+  "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+  "line": 49,
+  "name": "connect_[io.result]_with_[x]",
+  "kind": "Connection"
+},{
+  "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+  "line": 50,
+  "name": "defnode__io_resultIsValid_T",
+  "kind": "DataDefinition"
+},{
+  "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+  "line": 50,
+  "name": "connect_[io.resultIsValid]_with_[_io_resultIsValid_T]",
+  "kind": "Connection"
+}],
+  "edges": [{
+  "from": 3,
+  "to": 27,
+  "kind": "Data",
+  "clocked": true
+},{
+  "from": 4,
+  "to": 29,
+  "kind": "Data",
+  "clocked": true
+},{
+  "from": 7,
+  "to": 5,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 7,
+  "to": 5,
+  "kind": "Declaration",
+  "clocked": false
+},{
+  "from": 7,
+  "to": 13,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 7,
+  "to": 25,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 7,
+  "to": 6,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 7,
+  "to": 6,
+  "kind": "Declaration",
+  "clocked": false
+},{
+  "from": 7,
+  "to": 23,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 7,
+  "to": 26,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 8,
+  "to": 7,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 8,
+  "to": 7,
+  "kind": "Declaration",
+  "clocked": false
+},{
+  "from": 9,
+  "to": 5,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 9,
+  "to": 5,
+  "kind": "Declaration",
+  "clocked": false
+},{
+  "from": 9,
+  "to": 13,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 9,
+  "to": 25,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 9,
+  "to": 6,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 9,
+  "to": 6,
+  "kind": "Declaration",
+  "clocked": false
+},{
+  "from": 9,
+  "to": 23,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 9,
+  "to": 26,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 10,
+  "to": 9,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 10,
+  "to": 9,
+  "kind": "Declaration",
+  "clocked": false
+},{
+  "from": 11,
+  "to": 5,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 11,
+  "to": 5,
+  "kind": "Declaration",
+  "clocked": false
+},{
+  "from": 11,
+  "to": 13,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 11,
+  "to": 25,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 11,
+  "to": 6,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 11,
+  "to": 6,
+  "kind": "Declaration",
+  "clocked": false
+},{
+  "from": 11,
+  "to": 23,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 11,
+  "to": 26,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 11,
+  "to": 10,
+  "kind": "Conditional",
+  "clocked": false
+},{
+  "from": 12,
+  "to": 11,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 12,
+  "to": 11,
+  "kind": "Declaration",
+  "clocked": false
+},{
+  "from": 12,
+  "to": 10,
+  "kind": "Conditional",
+  "clocked": false
+},{
+  "from": 13,
+  "to": 12,
+  "kind": "Data",
+  "clocked": true
+},{
+  "from": 13,
+  "to": 12,
+  "kind": "Declaration",
+  "clocked": false
+},{
+  "from": 13,
+  "to": 10,
+  "kind": "Conditional",
+  "clocked": true
+},{
+  "from": 14,
+  "to": 6,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 14,
+  "to": 6,
+  "kind": "Declaration",
+  "clocked": false
+},{
+  "from": 14,
+  "to": 23,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 14,
+  "to": 26,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 14,
+  "to": 5,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 14,
+  "to": 5,
+  "kind": "Declaration",
+  "clocked": false
+},{
+  "from": 14,
+  "to": 13,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 14,
+  "to": 25,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 14,
+  "to": 10,
+  "kind": "Conditional",
+  "clocked": false
+},{
+  "from": 15,
+  "to": 14,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 15,
+  "to": 14,
+  "kind": "Declaration",
+  "clocked": false
+},{
+  "from": 15,
+  "to": 10,
+  "kind": "Conditional",
+  "clocked": false
+},{
+  "from": 16,
+  "to": 10,
+  "kind": "Conditional",
+  "clocked": false
+},{
+  "from": 17,
+  "to": 10,
+  "kind": "Conditional",
+  "clocked": false
+},{
+  "from": 18,
+  "to": 15,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 18,
+  "to": 15,
+  "kind": "Declaration",
+  "clocked": false
+},{
+  "from": 18,
+  "to": 10,
+  "kind": "Conditional",
+  "clocked": false
+},{
+  "from": 19,
+  "to": 6,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 19,
+  "to": 6,
+  "kind": "Declaration",
+  "clocked": false
+},{
+  "from": 19,
+  "to": 23,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 19,
+  "to": 26,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 19,
+  "to": 10,
+  "kind": "Conditional",
+  "clocked": false
+},{
+  "from": 20,
+  "to": 10,
+  "kind": "Conditional",
+  "clocked": false
+},{
+  "from": 21,
+  "to": 6,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 21,
+  "to": 6,
+  "kind": "Declaration",
+  "clocked": false
+},{
+  "from": 21,
+  "to": 23,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 21,
+  "to": 26,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 21,
+  "to": 5,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 21,
+  "to": 5,
+  "kind": "Declaration",
+  "clocked": false
+},{
+  "from": 21,
+  "to": 13,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 21,
+  "to": 25,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 21,
+  "to": 10,
+  "kind": "Conditional",
+  "clocked": false
+},{
+  "from": 22,
+  "to": 21,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 22,
+  "to": 21,
+  "kind": "Declaration",
+  "clocked": false
+},{
+  "from": 22,
+  "to": 10,
+  "kind": "Conditional",
+  "clocked": false
+},{
+  "from": 23,
+  "to": 22,
+  "kind": "Data",
+  "clocked": true
+},{
+  "from": 23,
+  "to": 22,
+  "kind": "Declaration",
+  "clocked": false
+},{
+  "from": 23,
+  "to": 10,
+  "kind": "Conditional",
+  "clocked": true
+},{
+  "from": 24,
+  "to": 2,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 25,
+  "to": 0,
+  "kind": "Data",
+  "clocked": true
+},{
+  "from": 25,
+  "to": 24,
+  "kind": "Conditional",
+  "clocked": true
+},{
+  "from": 26,
+  "to": 1,
+  "kind": "Data",
+  "clocked": true
+},{
+  "from": 26,
+  "to": 24,
+  "kind": "Conditional",
+  "clocked": true
+},{
+  "from": 27,
+  "to": 5,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 27,
+  "to": 5,
+  "kind": "Declaration",
+  "clocked": false
+},{
+  "from": 27,
+  "to": 13,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 27,
+  "to": 25,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 28,
+  "to": 6,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 28,
+  "to": 6,
+  "kind": "Declaration",
+  "clocked": false
+},{
+  "from": 28,
+  "to": 23,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 28,
+  "to": 26,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 29,
+  "to": 28,
+  "kind": "Data",
+  "clocked": false
+},{
+  "from": 29,
+  "to": 28,
+  "kind": "Declaration",
+  "clocked": false
+},{
+  "from": 20,
+  "to": 19,
+  "kind": "Data",
+  "clocked": false
+}]
+}

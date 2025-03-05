@@ -1,0 +1,414 @@
+{
+  "vertices": [
+    {
+      "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+      "line": 21,
+      "name": "input_io.a",
+      "kind": "IO"
+    },
+    {
+      "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+      "line": 21,
+      "name": "input_io.b",
+      "kind": "IO"
+    },
+    {
+      "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+      "line": 21,
+      "name": "input_io.loadValues",
+      "kind": "IO"
+    },
+    {
+      "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+      "line": 21,
+      "name": "output_io.result",
+      "kind": "IO"
+    },
+    {
+      "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+      "line": 29,
+      "name": "defreg_x",
+      "kind": "DataDefinition"
+    },
+    {
+      "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+      "line": 30,
+      "name": "defreg_y",
+      "kind": "DataDefinition"
+    },
+    {
+      "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+      "line": 33,
+      "name": "defnode__T",
+      "kind": "DataDefinition"
+    },
+    {
+      "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+      "line": 33,
+      "name": "cond_on_[_T]",
+      "kind": "ControlFlow"
+    },
+    {
+      "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+      "line": 34,
+      "name": "defnode__myTmpVal_T",
+      "kind": "DataDefinition"
+    },
+    {
+      "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+      "line": 34,
+      "name": "defnode_myTmpVal",
+      "kind": "DataDefinition"
+    },
+    {
+      "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+      "line": 36,
+      "name": "connect_[x]_with_[myTmpVal]",
+      "kind": "Connection"
+    },
+    {
+      "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+      "line": 44,
+      "name": "defnode__y_T",
+      "kind": "DataDefinition"
+    },
+    {
+      "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+      "line": 44,
+      "name": "defnode__y_T_1",
+      "kind": "DataDefinition"
+    },
+    {
+      "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+      "line": 44,
+      "name": "connect_[y]_with_[_y_T_1]",
+      "kind": "Connection"
+    },
+    {
+      "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+      "line": 47,
+      "name": "cond_on_[io.loadValues]",
+      "kind": "ControlFlow"
+    },
+    {
+      "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+      "line": 47,
+      "name": "connect_[x]_with_[io.a]",
+      "kind": "Connection"
+    },
+    {
+      "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+      "line": 47,
+      "name": "connect_[y]_with_[io.b]",
+      "kind": "Connection"
+    },
+    {
+      "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+      "line": 49,
+      "name": "connect_[io.result]_with_[x]",
+      "kind": "Connection"
+    }
+  ],
+  "edges": [
+    {
+      "from": 3,
+      "to": 17,
+      "kind": "Data",
+      "clocked": true
+    },
+    {
+      "from": 6,
+      "to": 4,
+      "kind": "Data",
+      "clocked": false
+    },
+    {
+      "from": 6,
+      "to": 4,
+      "kind": "Declaration",
+      "clocked": false
+    },
+    {
+      "from": 6,
+      "to": 10,
+      "kind": "Data",
+      "clocked": false
+    },
+    {
+      "from": 6,
+      "to": 15,
+      "kind": "Data",
+      "clocked": false
+    },
+    {
+      "from": 6,
+      "to": 5,
+      "kind": "Data",
+      "clocked": false
+    },
+    {
+      "from": 6,
+      "to": 5,
+      "kind": "Declaration",
+      "clocked": false
+    },
+    {
+      "from": 6,
+      "to": 13,
+      "kind": "Data",
+      "clocked": false
+    },
+    {
+      "from": 6,
+      "to": 16,
+      "kind": "Data",
+      "clocked": false
+    },
+    {
+      "from": 7,
+      "to": 6,
+      "kind": "Data",
+      "clocked": false
+    },
+    {
+      "from": 7,
+      "to": 6,
+      "kind": "Declaration",
+      "clocked": false
+    },
+    {
+      "from": 8,
+      "to": 4,
+      "kind": "Data",
+      "clocked": false
+    },
+    {
+      "from": 8,
+      "to": 4,
+      "kind": "Declaration",
+      "clocked": false
+    },
+    {
+      "from": 8,
+      "to": 10,
+      "kind": "Data",
+      "clocked": false
+    },
+    {
+      "from": 8,
+      "to": 15,
+      "kind": "Data",
+      "clocked": false
+    },
+    {
+      "from": 8,
+      "to": 5,
+      "kind": "Data",
+      "clocked": false
+    },
+    {
+      "from": 8,
+      "to": 5,
+      "kind": "Declaration",
+      "clocked": false
+    },
+    {
+      "from": 8,
+      "to": 13,
+      "kind": "Data",
+      "clocked": false
+    },
+    {
+      "from": 8,
+      "to": 16,
+      "kind": "Data",
+      "clocked": false
+    },
+    {
+      "from": 8,
+      "to": 7,
+      "kind": "Conditional",
+      "clocked": false
+    },
+    {
+      "from": 9,
+      "to": 8,
+      "kind": "Data",
+      "clocked": false
+    },
+    {
+      "from": 9,
+      "to": 8,
+      "kind": "Declaration",
+      "clocked": false
+    },
+    {
+      "from": 9,
+      "to": 7,
+      "kind": "Conditional",
+      "clocked": false
+    },
+    {
+      "from": 10,
+      "to": 9,
+      "kind": "Data",
+      "clocked": true
+    },
+    {
+      "from": 10,
+      "to": 9,
+      "kind": "Declaration",
+      "clocked": false
+    },
+    {
+      "from": 10,
+      "to": 7,
+      "kind": "Conditional",
+      "clocked": true
+    },
+    {
+      "from": 11,
+      "to": 5,
+      "kind": "Data",
+      "clocked": false
+    },
+    {
+      "from": 11,
+      "to": 5,
+      "kind": "Declaration",
+      "clocked": false
+    },
+    {
+      "from": 11,
+      "to": 13,
+      "kind": "Data",
+      "clocked": false
+    },
+    {
+      "from": 11,
+      "to": 16,
+      "kind": "Data",
+      "clocked": false
+    },
+    {
+      "from": 11,
+      "to": 4,
+      "kind": "Data",
+      "clocked": false
+    },
+    {
+      "from": 11,
+      "to": 4,
+      "kind": "Declaration",
+      "clocked": false
+    },
+    {
+      "from": 11,
+      "to": 10,
+      "kind": "Data",
+      "clocked": false
+    },
+    {
+      "from": 11,
+      "to": 15,
+      "kind": "Data",
+      "clocked": false
+    },
+    {
+      "from": 11,
+      "to": 7,
+      "kind": "Conditional",
+      "clocked": false
+    },
+    {
+      "from": 12,
+      "to": 11,
+      "kind": "Data",
+      "clocked": false
+    },
+    {
+      "from": 12,
+      "to": 11,
+      "kind": "Declaration",
+      "clocked": false
+    },
+    {
+      "from": 12,
+      "to": 7,
+      "kind": "Conditional",
+      "clocked": false
+    },
+    {
+      "from": 13,
+      "to": 12,
+      "kind": "Data",
+      "clocked": true
+    },
+    {
+      "from": 13,
+      "to": 12,
+      "kind": "Declaration",
+      "clocked": false
+    },
+    {
+      "from": 13,
+      "to": 7,
+      "kind": "Conditional",
+      "clocked": true
+    },
+    {
+      "from": 14,
+      "to": 2,
+      "kind": "Data",
+      "clocked": false
+    },
+    {
+      "from": 15,
+      "to": 0,
+      "kind": "Data",
+      "clocked": true
+    },
+    {
+      "from": 15,
+      "to": 14,
+      "kind": "Conditional",
+      "clocked": true
+    },
+    {
+      "from": 16,
+      "to": 1,
+      "kind": "Data",
+      "clocked": true
+    },
+    {
+      "from": 16,
+      "to": 14,
+      "kind": "Conditional",
+      "clocked": true
+    },
+    {
+      "from": 17,
+      "to": 4,
+      "kind": "Data",
+      "clocked": false
+    },
+    {
+      "from": 17,
+      "to": 4,
+      "kind": "Declaration",
+      "clocked": false
+    },
+    {
+      "from": 17,
+      "to": 10,
+      "kind": "Data",
+      "clocked": false
+    },
+    {
+      "from": 17,
+      "to": 15,
+      "kind": "Data",
+      "clocked": false
+    }
+  ]
+}
