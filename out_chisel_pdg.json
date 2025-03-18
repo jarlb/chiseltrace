@@ -1,0 +1,258 @@
+{
+  "vertices": [
+    {
+      "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+      "line": 34,
+      "name": "gcd.test.scala:34",
+      "kind": "Connection"
+    },
+    {
+      "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+      "line": 44,
+      "name": "gcd.test.scala:44",
+      "kind": "Connection"
+    },
+    {
+      "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+      "line": 47,
+      "name": "gcd.test.scala:47",
+      "kind": "Connection"
+    },
+    {
+      "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+      "line": 21,
+      "name": "gcd.test.scala:21",
+      "kind": "IO"
+    },
+    {
+      "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+      "line": 29,
+      "name": "gcd.test.scala:29",
+      "kind": "Connection"
+    },
+    {
+      "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+      "line": 49,
+      "name": "gcd.test.scala:49",
+      "kind": "Connection"
+    },
+    {
+      "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+      "line": 30,
+      "name": "gcd.test.scala:30",
+      "kind": "Connection"
+    },
+    {
+      "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+      "line": 36,
+      "name": "gcd.test.scala:36",
+      "kind": "Connection"
+    },
+    {
+      "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+      "line": 33,
+      "name": "gcd.test.scala:33",
+      "kind": "Connection"
+    }
+  ],
+  "edges": [
+    {
+      "from": 3,
+      "to": 5,
+      "kind": "Data",
+      "clocked": true
+    },
+    {
+      "from": 8,
+      "to": 4,
+      "kind": "Data",
+      "clocked": false
+    },
+    {
+      "from": 8,
+      "to": 4,
+      "kind": "Declaration",
+      "clocked": false
+    },
+    {
+      "from": 8,
+      "to": 7,
+      "kind": "Data",
+      "clocked": false
+    },
+    {
+      "from": 8,
+      "to": 2,
+      "kind": "Data",
+      "clocked": false
+    },
+    {
+      "from": 8,
+      "to": 6,
+      "kind": "Data",
+      "clocked": false
+    },
+    {
+      "from": 8,
+      "to": 6,
+      "kind": "Declaration",
+      "clocked": false
+    },
+    {
+      "from": 8,
+      "to": 1,
+      "kind": "Data",
+      "clocked": false
+    },
+    {
+      "from": 0,
+      "to": 4,
+      "kind": "Data",
+      "clocked": false
+    },
+    {
+      "from": 0,
+      "to": 4,
+      "kind": "Declaration",
+      "clocked": false
+    },
+    {
+      "from": 0,
+      "to": 7,
+      "kind": "Data",
+      "clocked": false
+    },
+    {
+      "from": 0,
+      "to": 2,
+      "kind": "Data",
+      "clocked": false
+    },
+    {
+      "from": 0,
+      "to": 6,
+      "kind": "Data",
+      "clocked": false
+    },
+    {
+      "from": 0,
+      "to": 6,
+      "kind": "Declaration",
+      "clocked": false
+    },
+    {
+      "from": 0,
+      "to": 1,
+      "kind": "Data",
+      "clocked": false
+    },
+    {
+      "from": 0,
+      "to": 8,
+      "kind": "Conditional",
+      "clocked": false
+    },
+    {
+      "from": 7,
+      "to": 0,
+      "kind": "Data",
+      "clocked": true
+    },
+    {
+      "from": 7,
+      "to": 0,
+      "kind": "Declaration",
+      "clocked": false
+    },
+    {
+      "from": 7,
+      "to": 8,
+      "kind": "Conditional",
+      "clocked": true
+    },
+    {
+      "from": 1,
+      "to": 6,
+      "kind": "Data",
+      "clocked": false
+    },
+    {
+      "from": 1,
+      "to": 6,
+      "kind": "Declaration",
+      "clocked": false
+    },
+    {
+      "from": 1,
+      "to": 2,
+      "kind": "Data",
+      "clocked": false
+    },
+    {
+      "from": 1,
+      "to": 4,
+      "kind": "Data",
+      "clocked": false
+    },
+    {
+      "from": 1,
+      "to": 4,
+      "kind": "Declaration",
+      "clocked": false
+    },
+    {
+      "from": 1,
+      "to": 7,
+      "kind": "Data",
+      "clocked": false
+    },
+    {
+      "from": 1,
+      "to": 8,
+      "kind": "Conditional",
+      "clocked": false
+    },
+    {
+      "from": 1,
+      "to": 8,
+      "kind": "Conditional",
+      "clocked": true
+    },
+    {
+      "from": 2,
+      "to": 3,
+      "kind": "Data",
+      "clocked": false
+    },
+    {
+      "from": 2,
+      "to": 3,
+      "kind": "Data",
+      "clocked": true
+    },
+    {
+      "from": 5,
+      "to": 4,
+      "kind": "Data",
+      "clocked": false
+    },
+    {
+      "from": 5,
+      "to": 4,
+      "kind": "Declaration",
+      "clocked": false
+    },
+    {
+      "from": 5,
+      "to": 7,
+      "kind": "Data",
+      "clocked": false
+    },
+    {
+      "from": 5,
+      "to": 2,
+      "kind": "Data",
+      "clocked": false
+    }
+  ]
+}

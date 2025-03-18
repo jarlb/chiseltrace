@@ -3,116 +3,141 @@
     {
       "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
       "line": 21,
+      "char": 14,
       "name": "input_io.a",
       "kind": "IO"
     },
     {
       "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
       "line": 21,
+      "char": 14,
       "name": "input_io.b",
       "kind": "IO"
     },
     {
       "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
       "line": 21,
+      "char": 14,
       "name": "input_io.loadValues",
       "kind": "IO"
     },
     {
       "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
       "line": 21,
-      "name": "output_io.result",
+      "char": 14,
+      "name": "output_io.resultIsValid",
       "kind": "IO"
     },
     {
       "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
       "line": 29,
+      "char": 14,
       "name": "defreg_x",
       "kind": "DataDefinition"
     },
     {
       "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
       "line": 30,
+      "char": 14,
       "name": "defreg_y",
       "kind": "DataDefinition"
     },
     {
       "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
       "line": 33,
+      "char": 10,
       "name": "defnode__T",
       "kind": "DataDefinition"
     },
     {
       "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
       "line": 33,
+      "char": 15,
       "name": "cond_on_[_T]",
       "kind": "ControlFlow"
     },
     {
       "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
       "line": 34,
+      "char": 28,
       "name": "defnode__myTmpVal_T",
       "kind": "DataDefinition"
     },
     {
       "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
       "line": 34,
+      "char": 28,
       "name": "defnode_myTmpVal",
       "kind": "DataDefinition"
     },
     {
       "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
       "line": 36,
+      "char": 7,
       "name": "connect_[x]_with_[myTmpVal]",
       "kind": "Connection"
     },
     {
       "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
       "line": 44,
+      "char": 20,
       "name": "defnode__y_T",
       "kind": "DataDefinition"
     },
     {
       "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
       "line": 44,
+      "char": 20,
       "name": "defnode__y_T_1",
       "kind": "DataDefinition"
     },
     {
       "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
       "line": 44,
+      "char": 15,
       "name": "connect_[y]_with_[_y_T_1]",
       "kind": "Connection"
     },
     {
       "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
       "line": 47,
+      "char": 23,
       "name": "cond_on_[io.loadValues]",
       "kind": "ControlFlow"
     },
     {
       "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
       "line": 47,
+      "char": 27,
       "name": "connect_[x]_with_[io.a]",
       "kind": "Connection"
     },
     {
       "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
       "line": 47,
+      "char": 38,
       "name": "connect_[y]_with_[io.b]",
       "kind": "Connection"
     },
     {
       "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
-      "line": 49,
-      "name": "connect_[io.result]_with_[x]",
+      "line": 50,
+      "char": 25,
+      "name": "defnode__io_resultIsValid_T",
+      "kind": "DataDefinition"
+    },
+    {
+      "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+      "line": 50,
+      "char": 20,
+      "name": "connect_[io.resultIsValid]_with_[_io_resultIsValid_T]",
       "kind": "Connection"
     }
   ],
   "edges": [
     {
       "from": 3,
-      "to": 17,
+      "to": 18,
       "kind": "Data",
       "clocked": true
     },
@@ -388,27 +413,174 @@
     },
     {
       "from": 17,
-      "to": 4,
+      "to": 5,
       "kind": "Data",
       "clocked": false
     },
     {
       "from": 17,
-      "to": 4,
+      "to": 5,
       "kind": "Declaration",
       "clocked": false
     },
     {
       "from": 17,
-      "to": 10,
+      "to": 13,
       "kind": "Data",
       "clocked": false
     },
     {
       "from": 17,
-      "to": 15,
+      "to": 16,
       "kind": "Data",
       "clocked": false
+    },
+    {
+      "from": 18,
+      "to": 17,
+      "kind": "Data",
+      "clocked": false
+    },
+    {
+      "from": 18,
+      "to": 17,
+      "kind": "Declaration",
+      "clocked": false
+    }
+  ],
+  "predicates": [
+    {
+      "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+      "line": 33,
+      "char": 15,
+      "name": "pred__T",
+      "kind": "DataDefinition"
+    },
+    {
+      "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
+      "line": 47,
+      "char": 23,
+      "name": "pred_io_loadValues",
+      "kind": "DataDefinition"
+    }
+  ],
+  "cfg": [
+    {
+      "stmtRef": 0,
+      "predStmtRef": null,
+      "trueBranch": null,
+      "falseBranch": null
+    },
+    {
+      "stmtRef": 1,
+      "predStmtRef": null,
+      "trueBranch": null,
+      "falseBranch": null
+    },
+    {
+      "stmtRef": 2,
+      "predStmtRef": null,
+      "trueBranch": null,
+      "falseBranch": null
+    },
+    {
+      "stmtRef": 3,
+      "predStmtRef": null,
+      "trueBranch": null,
+      "falseBranch": null
+    },
+    {
+      "stmtRef": 4,
+      "predStmtRef": null,
+      "trueBranch": null,
+      "falseBranch": null
+    },
+    {
+      "stmtRef": 5,
+      "predStmtRef": null,
+      "trueBranch": null,
+      "falseBranch": null
+    },
+    {
+      "stmtRef": 6,
+      "predStmtRef": null,
+      "trueBranch": null,
+      "falseBranch": null
+    },
+    {
+      "stmtRef": 7,
+      "predStmtRef": 0,
+      "trueBranch": [
+        {
+          "stmtRef": 8,
+          "predStmtRef": null,
+          "trueBranch": null,
+          "falseBranch": null
+        },
+        {
+          "stmtRef": 9,
+          "predStmtRef": null,
+          "trueBranch": null,
+          "falseBranch": null
+        },
+        {
+          "stmtRef": 10,
+          "predStmtRef": null,
+          "trueBranch": null,
+          "falseBranch": null
+        }
+      ],
+      "falseBranch": [
+        {
+          "stmtRef": 11,
+          "predStmtRef": null,
+          "trueBranch": null,
+          "falseBranch": null
+        },
+        {
+          "stmtRef": 12,
+          "predStmtRef": null,
+          "trueBranch": null,
+          "falseBranch": null
+        },
+        {
+          "stmtRef": 13,
+          "predStmtRef": null,
+          "trueBranch": null,
+          "falseBranch": null
+        }
+      ]
+    },
+    {
+      "stmtRef": 14,
+      "predStmtRef": 1,
+      "trueBranch": [
+        {
+          "stmtRef": 15,
+          "predStmtRef": null,
+          "trueBranch": null,
+          "falseBranch": null
+        },
+        {
+          "stmtRef": 16,
+          "predStmtRef": null,
+          "trueBranch": null,
+          "falseBranch": null
+        }
+      ],
+      "falseBranch": null
+    },
+    {
+      "stmtRef": 17,
+      "predStmtRef": null,
+      "trueBranch": null,
+      "falseBranch": null
+    },
+    {
+      "stmtRef": 18,
+      "predStmtRef": null,
+      "trueBranch": null,
+      "falseBranch": null
     }
   ]
 }
