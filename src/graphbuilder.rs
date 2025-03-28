@@ -1,15 +1,17 @@
-use std::{collections::HashMap, fs::File, io::{self, BufReader}, path::Path};
+use std::{cell::RefCell, collections::HashMap, fs::File, io::{self, BufReader}, path::Path, rc::Rc};
 use vcd::{Command as Command, IdCode};
 use anyhow::Result;
 
-use crate::{pdg_spec::PDGSpec, Error};
+use crate::{pdg_spec::{PDGSpec, PDGSpecEdge, PDGSpecEdgeKind, PDGSpecNode, PDGSpecNodeKind}, Error};
 
 pub struct GraphBuilder {
     reader: VcdReader,
     pdg: PDGSpec,
+    linked_nodes: Vec<Rc<RefCell<PDGNode>>>,
     pred_values: HashMap<IdCode, bool>,
-    pred_idx_to_id: Vec<IdCode>
+    pred_idx_to_id: Vec<IdCode>,
     // This struct should contain some kind of state.
+    dependency_state: HashMap<String, Rc<RefCell<DynPDGNode>>>
 }
 
 struct VcdReader {
@@ -28,22 +30,111 @@ struct ValueChange {
     value: vcd::Value
 }
 
+#[derive(Debug)]
+struct PDGNode {
+    inner: PDGSpecNode,
+    provides: Vec<(Rc<RefCell<PDGNode>>, PDGSpecEdge)>,
+    dependencies: Vec<(Rc<RefCell<PDGNode>>, PDGSpecEdge)>,
+    is_register: bool
+}
+
+#[derive(Debug)]
+struct DynPDGNode {
+    inner: PDGSpecNode,
+    timestamp: u64,
+    dependencies: Vec<(Rc<RefCell<DynPDGNode>>, PDGSpecEdgeKind)>
+}
+
 impl GraphBuilder {
     pub fn new(vcd_path: impl AsRef<Path>, pdg: PDGSpec) -> Result<GraphBuilder> {
         let vcd_reader = VcdReader::new(vcd_path)?;
-        Ok(GraphBuilder { reader: vcd_reader, pdg, pred_values: HashMap::new(), pred_idx_to_id: vec![] })
+
+        // Link up the nodes for easier processing
+        let linked = pdg.vertices.iter().map(|v| {
+            Rc::new(RefCell::new(PDGNode {inner: v.clone(), provides: vec![], dependencies: vec![], is_register: false }))
+        }).collect::<Vec<_>>();
+
+        for (node_idx, node) in linked.iter().enumerate() {
+            for edge in &pdg.edges {
+                if edge.from == node_idx as u32 {
+                    let mut node_ref = node.borrow_mut();
+                    node_ref.dependencies.push((linked[edge.to as usize].clone(), edge.clone()));
+                    if edge.clocked {
+                        node_ref.is_register = true;
+                    }
+                }
+                if edge.to == node_idx as u32 {
+                    node.borrow_mut().provides.push((linked[edge.from as usize].clone(), edge.clone()));
+                }
+            }
+        }
+
+
+        Ok(GraphBuilder { reader: vcd_reader, pdg, linked_nodes: linked, pred_values: HashMap::new(), pred_idx_to_id: vec![], dependency_state: HashMap::new() })
     }
 
     pub fn process(&mut self) -> Result<()> {
         self.init_predicates()?;
 
         let mut eof_reached = false;
+        let mut all_nodes = vec![];
         while !eof_reached {
             let (c, eof) = self.reader.read_cycle_changes()?;
             eof_reached = eof;
+            let activated_statements = self.get_activated_statements(&c);
+            let mut new_reg_providers: HashMap<String, Rc<RefCell<DynPDGNode>>> = HashMap::new();
+            let mut controlflow_providers: HashMap<PDGSpecNode, Rc<RefCell<DynPDGNode>>> = HashMap::new();
+            let mut new_nodes = vec![];
+            for stmt in &activated_statements {
+                let node = self.linked_nodes[*stmt as usize].borrow();
+                let dpdg_node = Rc::new(RefCell::new(DynPDGNode {inner: node.inner.clone(), timestamp: self.reader.current_time, dependencies: vec![]}));
+                new_nodes.push((self.linked_nodes[*stmt as usize].clone(), dpdg_node.clone()));
+                // First, update all the wires dependencies. This will determine during the dependency finding which statement will provide which
+                // wire value (this is possible because we are just tracing dependencies between statements). In the same pass, we can do registers.
+                // We will have to place them in a buffer, because the dependencies are delayed by one clock cycle.
+                if let Some(symb) = &node.inner.assigns_to { // Add conditions
+                    if node.is_register {
+                        new_reg_providers.insert(symb.clone(), dpdg_node.clone());
+                    } else {
+                        self.dependency_state.insert(symb.clone(), dpdg_node.clone());
+                    }
+                }
 
-            println!("Activated nodes: {:?}", self.get_activated_statements(&c));
-        } 
+                if node.inner.kind == PDGSpecNodeKind::ControlFlow {
+                    controlflow_providers.insert(node.inner.clone(), dpdg_node.clone());
+                }
+            }
+            for (node, dpdg_node) in &new_nodes {
+                for (dep_node, dep_edge) in &node.borrow().dependencies {
+                    match dep_edge.kind {
+                        PDGSpecEdgeKind::Data => {
+                            if let Some(dep_str) = &dep_node.borrow().inner.assigns_to {
+                                if let Some(dep) = self.dependency_state.get(dep_str) {
+                                    dpdg_node.borrow_mut().dependencies.push((dep.clone(), PDGSpecEdgeKind::Data));
+                                }
+                            }
+                        }
+                        PDGSpecEdgeKind::Conditional => {
+                            if let Some(cond_dep) = controlflow_providers.get(&dep_node.borrow().inner) {
+                                dpdg_node.borrow_mut().dependencies.push((cond_dep.clone(), PDGSpecEdgeKind::Conditional));
+                            }
+                        }
+                        _ => ()
+                    }
+                }
+            }
+
+            for (_,n) in new_nodes {
+                all_nodes.push(n);
+            }
+            for (k,v) in new_reg_providers {
+                self.dependency_state.insert(k, v);
+            }
+            println!("{}", self.reader.current_time);
+            println!("Activated nodes: {:?}", activated_statements);
+        }
+
+        println!("Full graph: {:#?}", all_nodes[all_nodes.len()-1]);
 
         Ok(())
     }
@@ -71,17 +162,17 @@ impl GraphBuilder {
         stack.reverse();
 
         while let Some(node) = stack.pop() {
-            activated.push(node.stmtRef);
-            if let Some(pred) = node.predStmtRef {
+            activated.push(node.stmt_ref);
+            if let Some(pred) = node.pred_stmt_ref {
                 let pred_id = self.pred_idx_to_id[pred as usize];
                 let pred_active = self.pred_values[&pred_id];
                 if pred_active {
-                    if let Some(t_branch) = node.trueBranch {
-                        stack.extend(t_branch);
+                    if let Some(t_branch) = node.true_branch {
+                        stack.extend(t_branch.into_iter().rev());
                     }
                 } else {
-                    if let Some(f_branch) = node.falseBranch {
-                        stack.extend(f_branch);
+                    if let Some(f_branch) = node.false_branch {
+                        stack.extend(f_branch.into_iter().rev());
                     }
                 }
             }
@@ -122,7 +213,7 @@ impl VcdReader {
     }
 
     fn find_var(&self, hierarchy: impl AsRef<str>) -> Result<IdCode> {
-        let mut hier_path = vec!["TOP", "svsimTestbech", "dut"];
+        let mut hier_path = vec!["TOP", "svsimTestbench", "dut"];
         hier_path.extend(hierarchy.as_ref().split("."));
         Ok(self.header.find_var(&hier_path).ok_or(Error::VariableNotFoundError(hier_path.join(".")))?.code)
     }
@@ -131,13 +222,14 @@ impl VcdReader {
         let mut changes = vec![];
         let mut rising_edge_found = false;
         let mut eof_reached = true;
+        let last_time = self.current_time;
         while let Some(command) = self.parser.next() {
             let command = command?;
             match command {
                 Command::Timestamp(t) => {
                     // println!("Timestamp: {t}");
                     if rising_edge_found {
-                        self.current_time = t + 1;
+                        self.current_time += 1;
                         eof_reached = false;
                         break;
                     } else {
@@ -161,7 +253,9 @@ impl VcdReader {
                 _ => ()
             }
         }
-
+        if last_time == self.current_time {
+            self.current_time += 1;
+        }
 
 
         Ok((changes, eof_reached))

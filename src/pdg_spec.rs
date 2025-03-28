@@ -10,16 +10,19 @@ pub struct PDGSpec {
     pub cfg: Vec<CFGSpecStatement>
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Hash, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct PDGSpecNode {
     pub file: String,
     pub line: u32,
     pub char: u32,
     pub name: String,
-    pub kind: PDGSpecNodeKind
+    pub kind: PDGSpecNodeKind,
+    pub assigns_to: Option<String>,
+    pub condition: Option<PDGSpecCondition>
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Hash, Eq)]
 pub enum PDGSpecNodeKind {
     Definition,
     DataDefinition,
@@ -40,7 +43,15 @@ pub struct PDGSpecEdge {
 pub enum PDGSpecEdgeKind {
     Data,
     Conditional,
-    Declaration
+    Declaration,
+    Index
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Hash, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct PDGSpecCondition {
+    probe_name: Vec<String>,
+    probe_value: Vec<u64>
 }
 
 // Warning: do not debug print this using the standard trait implementation, it is a linked structure and it will result in infinite recursion
@@ -60,12 +71,13 @@ impl From<&PDGSpecNode> for LinkedPDGNode {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct CFGSpecStatement {
-    pub stmtRef: u32,
+    pub stmt_ref: u32,
     #[serde(default)]
-    pub predStmtRef: Option<u32>,
+    pub pred_stmt_ref: Option<u32>,
     #[serde(default)]
-    pub trueBranch: Option<Vec<CFGSpecStatement>>,
+    pub true_branch: Option<Vec<CFGSpecStatement>>,
     #[serde(default)]
-    pub falseBranch: Option<Vec<CFGSpecStatement>>,
+    pub false_branch: Option<Vec<CFGSpecStatement>>,
 }

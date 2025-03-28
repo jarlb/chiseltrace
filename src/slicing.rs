@@ -84,23 +84,23 @@ pub fn reduce_cfg(pdg: PDGSpec, removed_indices: &Vec<usize>, idx_remap: &Vec<Op
 
 fn remove_cfg_statements(cfg: Vec<CFGSpecStatement>, remove_idx: &Vec<usize>, idx_remap: &Vec<Option<u32>>, removed_predicates: &mut Vec<usize>) -> Vec<CFGSpecStatement> {
     cfg.iter().filter_map(|s| {
-        let should_keep = !remove_idx.contains(&(s.stmtRef as usize));
-        if let Some(pred_stmt) = s.predStmtRef {
+        let should_keep = !remove_idx.contains(&(s.stmt_ref as usize));
+        if let Some(pred_stmt) = s.pred_stmt_ref {
             // The statement is a conditional fork
             if should_keep {
                 // Process the branches
-                let new_true_branch = s.trueBranch.as_ref().map(|true_branch| remove_cfg_statements(true_branch.clone(), remove_idx, idx_remap, removed_predicates));
-                let new_false_branch = s.falseBranch.as_ref().map(|false_branch| remove_cfg_statements(false_branch.clone(), remove_idx, idx_remap, removed_predicates));
-                let new_stmt_ref = idx_remap[s.stmtRef as usize].unwrap();
-                Some(CFGSpecStatement{stmtRef: new_stmt_ref, trueBranch: new_true_branch, falseBranch: new_false_branch, ..s.clone()})
+                let new_true_branch = s.true_branch.as_ref().map(|true_branch| remove_cfg_statements(true_branch.clone(), remove_idx, idx_remap, removed_predicates));
+                let new_false_branch = s.false_branch.as_ref().map(|false_branch| remove_cfg_statements(false_branch.clone(), remove_idx, idx_remap, removed_predicates));
+                let new_stmt_ref = idx_remap[s.stmt_ref as usize].unwrap();
+                Some(CFGSpecStatement{stmt_ref: new_stmt_ref, true_branch: new_true_branch, false_branch: new_false_branch, ..s.clone()})
             } else {
                 removed_predicates.push(pred_stmt as usize);
                 None
             }
         } else {
             should_keep.then(|| {
-                let new_stmt_ref = idx_remap[s.stmtRef as usize]?;
-                Some(CFGSpecStatement { stmtRef: new_stmt_ref, ..s.clone() })
+                let new_stmt_ref = idx_remap[s.stmt_ref as usize]?;
+                Some(CFGSpecStatement { stmt_ref: new_stmt_ref, ..s.clone() })
             }).flatten()
         }
         

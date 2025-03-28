@@ -4,637 +4,716 @@
   "line": 21,
   "char": 14,
   "name": "input_io.a",
-  "kind": "IO"
+  "kind": "IO",
+  "assignsTo": null,
+  "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
   "line": 21,
   "char": 14,
   "name": "input_io.b",
-  "kind": "IO"
+  "kind": "IO",
+  "assignsTo": null,
+  "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
   "line": 21,
   "char": 14,
   "name": "input_io.loadValues",
-  "kind": "IO"
+  "kind": "IO",
+  "assignsTo": null,
+  "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
   "line": 21,
   "char": 14,
   "name": "output_io.result",
-  "kind": "IO"
+  "kind": "IO",
+  "assignsTo": null,
+  "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
   "line": 21,
   "char": 14,
   "name": "output_io.resultIsValid",
-  "kind": "IO"
+  "kind": "IO",
+  "assignsTo": null,
+  "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
   "line": 29,
   "char": 14,
   "name": "defreg_x",
-  "kind": "DataDefinition"
+  "kind": "Definition",
+  "assignsTo": null,
+  "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
   "line": 30,
   "char": 14,
   "name": "defreg_y",
-  "kind": "DataDefinition"
+  "kind": "Definition",
+  "assignsTo": null,
+  "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
   "line": 32,
   "char": 15,
   "name": "defnode__tmp_T",
-  "kind": "DataDefinition"
+  "kind": "DataDefinition",
+  "assignsTo": "_tmp_T",
+  "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
   "line": 32,
   "char": 15,
   "name": "defnode_tmp",
-  "kind": "DataDefinition"
+  "kind": "DataDefinition",
+  "assignsTo": "tmp",
+  "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
   "line": 33,
   "char": 10,
   "name": "defnode__T",
-  "kind": "DataDefinition"
+  "kind": "DataDefinition",
+  "assignsTo": "_T",
+  "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
   "line": 33,
   "char": 15,
   "name": "cond_on_[_T]",
-  "kind": "ControlFlow"
+  "kind": "ControlFlow",
+  "assignsTo": null,
+  "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
   "line": 34,
   "char": 28,
   "name": "defnode__myTmpVal_T",
-  "kind": "DataDefinition"
+  "kind": "DataDefinition",
+  "assignsTo": "_myTmpVal_T",
+  "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
   "line": 34,
   "char": 28,
   "name": "defnode_myTmpVal",
-  "kind": "DataDefinition"
+  "kind": "DataDefinition",
+  "assignsTo": "myTmpVal",
+  "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
   "line": 36,
   "char": 7,
-  "name": "connect_[x]_with_[myTmpVal]",
-  "kind": "Connection"
+  "name": "connect_x",
+  "kind": "Connection",
+  "assignsTo": "x",
+  "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
   "line": 38,
   "char": 22,
   "name": "defnode__myTmpVal_T_1",
-  "kind": "DataDefinition"
+  "kind": "DataDefinition",
+  "assignsTo": "_myTmpVal_T_1",
+  "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
   "line": 38,
   "char": 22,
   "name": "defnode_myTmpVal_1",
-  "kind": "DataDefinition"
+  "kind": "DataDefinition",
+  "assignsTo": "myTmpVal_1",
+  "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
   "line": 39,
   "char": 25,
   "name": "defwire_myTmpVal3",
-  "kind": "Definition"
+  "kind": "Definition",
+  "assignsTo": null,
+  "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
   "line": 40,
   "char": 25,
   "name": "defwire_myTmpVal4",
-  "kind": "Definition"
+  "kind": "Definition",
+  "assignsTo": null,
+  "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
   "line": 41,
   "char": 15,
-  "name": "connect_[myTmpVal3]_with_[myTmpVal_1]",
-  "kind": "Connection"
+  "name": "connect_myTmpVal3",
+  "kind": "Connection",
+  "assignsTo": "myTmpVal3",
+  "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
   "line": 42,
   "char": 15,
-  "name": "connect_[myTmpVal3]_with_[y]",
-  "kind": "Connection"
+  "name": "connect_myTmpVal3",
+  "kind": "Connection",
+  "assignsTo": "myTmpVal3",
+  "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
   "line": 43,
   "char": 15,
-  "name": "connect_[myTmpVal4]_with_[myTmpVal3]",
-  "kind": "Connection"
+  "name": "connect_myTmpVal4",
+  "kind": "Connection",
+  "assignsTo": "myTmpVal4",
+  "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
   "line": 44,
   "char": 20,
   "name": "defnode__y_T",
-  "kind": "DataDefinition"
+  "kind": "DataDefinition",
+  "assignsTo": "_y_T",
+  "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
   "line": 44,
   "char": 20,
   "name": "defnode__y_T_1",
-  "kind": "DataDefinition"
+  "kind": "DataDefinition",
+  "assignsTo": "_y_T_1",
+  "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
   "line": 44,
   "char": 15,
-  "name": "connect_[y]_with_[_y_T_1]",
-  "kind": "Connection"
+  "name": "connect_y",
+  "kind": "Connection",
+  "assignsTo": "y",
+  "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
   "line": 47,
   "char": 23,
   "name": "cond_on_[io.loadValues]",
-  "kind": "ControlFlow"
+  "kind": "ControlFlow",
+  "assignsTo": null,
+  "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
   "line": 47,
   "char": 27,
-  "name": "connect_[x]_with_[io.a]",
-  "kind": "Connection"
+  "name": "connect_x",
+  "kind": "Connection",
+  "assignsTo": "x",
+  "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
   "line": 47,
   "char": 38,
-  "name": "connect_[y]_with_[io.b]",
-  "kind": "Connection"
+  "name": "connect_y",
+  "kind": "Connection",
+  "assignsTo": "y",
+  "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
   "line": 49,
   "char": 20,
-  "name": "connect_[io.result]_with_[x]",
-  "kind": "Connection"
+  "name": "connect_io.result",
+  "kind": "Connection",
+  "assignsTo": "io.result",
+  "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
   "line": 50,
   "char": 25,
   "name": "defnode__io_resultIsValid_T",
-  "kind": "DataDefinition"
+  "kind": "DataDefinition",
+  "assignsTo": "_io_resultIsValid_T",
+  "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
   "line": 50,
   "char": 20,
-  "name": "connect_[io.resultIsValid]_with_[_io_resultIsValid_T]",
-  "kind": "Connection"
+  "name": "connect_io.resultIsValid",
+  "kind": "Connection",
+  "assignsTo": "io.resultIsValid",
+  "condition": null
 }],
   "edges": [{
   "from": 3,
   "to": 27,
   "kind": "Data",
-  "clocked": true
+  "clocked": true,
+  "condition": null
 },{
   "from": 4,
   "to": 29,
   "kind": "Data",
-  "clocked": true
-},{
-  "from": 7,
-  "to": 5,
-  "kind": "Data",
-  "clocked": false
+  "clocked": true,
+  "condition": null
 },{
   "from": 7,
   "to": 5,
   "kind": "Declaration",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 7,
   "to": 13,
   "kind": "Data",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 7,
   "to": 25,
   "kind": "Data",
-  "clocked": false
-},{
-  "from": 7,
-  "to": 6,
-  "kind": "Data",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 7,
   "to": 6,
   "kind": "Declaration",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 7,
   "to": 23,
   "kind": "Data",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 7,
   "to": 26,
   "kind": "Data",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 8,
   "to": 7,
   "kind": "Data",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 8,
   "to": 7,
   "kind": "Declaration",
-  "clocked": false
-},{
-  "from": 9,
-  "to": 5,
-  "kind": "Data",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 9,
   "to": 5,
   "kind": "Declaration",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 9,
   "to": 13,
   "kind": "Data",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 9,
   "to": 25,
   "kind": "Data",
-  "clocked": false
-},{
-  "from": 9,
-  "to": 6,
-  "kind": "Data",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 9,
   "to": 6,
   "kind": "Declaration",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 9,
   "to": 23,
   "kind": "Data",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 9,
   "to": 26,
   "kind": "Data",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 10,
   "to": 9,
   "kind": "Data",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 10,
   "to": 9,
   "kind": "Declaration",
-  "clocked": false
-},{
-  "from": 11,
-  "to": 5,
-  "kind": "Data",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 11,
   "to": 5,
   "kind": "Declaration",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 11,
   "to": 13,
   "kind": "Data",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 11,
   "to": 25,
   "kind": "Data",
-  "clocked": false
-},{
-  "from": 11,
-  "to": 6,
-  "kind": "Data",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 11,
   "to": 6,
   "kind": "Declaration",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 11,
   "to": 23,
   "kind": "Data",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 11,
   "to": 26,
   "kind": "Data",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 11,
   "to": 10,
   "kind": "Conditional",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 12,
   "to": 11,
   "kind": "Data",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 12,
   "to": 11,
   "kind": "Declaration",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 12,
   "to": 10,
   "kind": "Conditional",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 13,
   "to": 12,
   "kind": "Data",
-  "clocked": true
+  "clocked": true,
+  "condition": null
 },{
   "from": 13,
   "to": 12,
   "kind": "Declaration",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 13,
   "to": 10,
   "kind": "Conditional",
-  "clocked": true
-},{
-  "from": 14,
-  "to": 6,
-  "kind": "Data",
-  "clocked": false
+  "clocked": true,
+  "condition": null
 },{
   "from": 14,
   "to": 6,
   "kind": "Declaration",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 14,
   "to": 23,
   "kind": "Data",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 14,
   "to": 26,
   "kind": "Data",
-  "clocked": false
-},{
-  "from": 14,
-  "to": 5,
-  "kind": "Data",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 14,
   "to": 5,
   "kind": "Declaration",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 14,
   "to": 13,
   "kind": "Data",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 14,
   "to": 25,
   "kind": "Data",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 14,
   "to": 10,
   "kind": "Conditional",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 15,
   "to": 14,
   "kind": "Data",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 15,
   "to": 14,
   "kind": "Declaration",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 15,
   "to": 10,
   "kind": "Conditional",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 16,
   "to": 10,
   "kind": "Conditional",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 17,
   "to": 10,
   "kind": "Conditional",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 18,
   "to": 15,
   "kind": "Data",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 18,
   "to": 15,
   "kind": "Declaration",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 18,
   "to": 10,
   "kind": "Conditional",
-  "clocked": false
-},{
-  "from": 19,
-  "to": 6,
-  "kind": "Data",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 19,
   "to": 6,
   "kind": "Declaration",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 19,
   "to": 23,
   "kind": "Data",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 19,
   "to": 26,
   "kind": "Data",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 19,
   "to": 10,
   "kind": "Conditional",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 20,
   "to": 10,
   "kind": "Conditional",
-  "clocked": false
-},{
-  "from": 21,
-  "to": 6,
-  "kind": "Data",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 21,
   "to": 6,
   "kind": "Declaration",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 21,
   "to": 23,
   "kind": "Data",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 21,
   "to": 26,
   "kind": "Data",
-  "clocked": false
-},{
-  "from": 21,
-  "to": 5,
-  "kind": "Data",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 21,
   "to": 5,
   "kind": "Declaration",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 21,
   "to": 13,
   "kind": "Data",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 21,
   "to": 25,
   "kind": "Data",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 21,
   "to": 10,
   "kind": "Conditional",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 22,
   "to": 21,
   "kind": "Data",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 22,
   "to": 21,
   "kind": "Declaration",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 22,
   "to": 10,
   "kind": "Conditional",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 23,
   "to": 22,
   "kind": "Data",
-  "clocked": true
+  "clocked": true,
+  "condition": null
 },{
   "from": 23,
   "to": 22,
   "kind": "Declaration",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 23,
   "to": 10,
   "kind": "Conditional",
-  "clocked": true
+  "clocked": true,
+  "condition": null
 },{
   "from": 24,
   "to": 2,
   "kind": "Data",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 25,
   "to": 0,
   "kind": "Data",
-  "clocked": true
+  "clocked": true,
+  "condition": null
 },{
   "from": 25,
   "to": 24,
   "kind": "Conditional",
-  "clocked": true
+  "clocked": true,
+  "condition": null
 },{
   "from": 26,
   "to": 1,
   "kind": "Data",
-  "clocked": true
+  "clocked": true,
+  "condition": null
 },{
   "from": 26,
   "to": 24,
   "kind": "Conditional",
-  "clocked": true
-},{
-  "from": 27,
-  "to": 5,
-  "kind": "Data",
-  "clocked": false
+  "clocked": true,
+  "condition": null
 },{
   "from": 27,
   "to": 5,
   "kind": "Declaration",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 27,
   "to": 13,
   "kind": "Data",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 27,
   "to": 25,
   "kind": "Data",
-  "clocked": false
-},{
-  "from": 28,
-  "to": 6,
-  "kind": "Data",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 28,
   "to": 6,
   "kind": "Declaration",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 28,
   "to": 23,
   "kind": "Data",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 28,
   "to": 26,
   "kind": "Data",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 29,
   "to": 28,
   "kind": "Data",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 },{
   "from": 29,
   "to": 28,
   "kind": "Declaration",
-  "clocked": false
+  "clocked": false,
+  "condition": null
+},{
+  "from": 16,
+  "to": 20,
+  "kind": "Declaration",
+  "clocked": false,
+  "condition": null
 },{
   "from": 20,
   "to": 19,
   "kind": "Data",
-  "clocked": false
+  "clocked": false,
+  "condition": null
 }],
   "predicates": [{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/gcd.test.scala",
