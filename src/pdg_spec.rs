@@ -36,7 +36,8 @@ pub struct PDGSpecEdge {
     pub from: u32,
     pub to: u32,
     pub kind: PDGSpecEdgeKind,
-    pub clocked: bool
+    pub clocked: bool,
+    pub condition: Option<PDGSpecCondition>
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -50,8 +51,8 @@ pub enum PDGSpecEdgeKind {
 #[derive(Serialize, Deserialize, Debug, Clone, Hash, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct PDGSpecCondition {
-    probe_name: Vec<String>,
-    probe_value: Vec<u64>
+    pub probe_name: Vec<String>,
+    pub probe_value: Vec<u64>
 }
 
 // Warning: do not debug print this using the standard trait implementation, it is a linked structure and it will result in infinite recursion

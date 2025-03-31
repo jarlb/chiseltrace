@@ -1,4 +1,5 @@
-use std::{cell::RefCell, collections::HashMap, fs::File, io::{self, BufReader}, path::Path, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, fs::File, io::{self, BufReader, BufWriter}, path::Path, rc::Rc};
+use serde::Serialize;
 use vcd::{Command as Command, IdCode};
 use anyhow::Result;
 
@@ -21,7 +22,10 @@ struct VcdReader {
     reset: vcd::IdCode,
     current_time: u64,
     clock_val: vcd::Value,
-    changes_buffer: Vec<ValueChange>
+    changes_buffer: Vec<ValueChange>,
+    probes: HashMap<IdCode, Vec<String>>,
+    probe_values: HashMap<String, u64>,
+    probe_change_buffer: Vec<(String, u64)>
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -38,7 +42,7 @@ struct PDGNode {
     is_register: bool
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 struct DynPDGNode {
     inner: PDGSpecNode,
     timestamp: u64,
@@ -69,6 +73,7 @@ impl GraphBuilder {
             }
         }
 
+        println!("Node 21 deps: {:?}", linked[21].borrow().dependencies.iter().map(|d| d.0.borrow().inner.name.clone()).collect::<Vec<_>>());
 
         Ok(GraphBuilder { reader: vcd_reader, pdg, linked_nodes: linked, pred_values: HashMap::new(), pred_idx_to_id: vec![], dependency_state: HashMap::new() })
     }
@@ -89,37 +94,89 @@ impl GraphBuilder {
                 let node = self.linked_nodes[*stmt as usize].borrow();
                 let dpdg_node = Rc::new(RefCell::new(DynPDGNode {inner: node.inner.clone(), timestamp: self.reader.current_time, dependencies: vec![]}));
                 new_nodes.push((self.linked_nodes[*stmt as usize].clone(), dpdg_node.clone()));
+
+                let conditions_satisfied = if let Some(conds) = &node.inner.condition {
+                    conds.probe_name.iter().zip(&conds.probe_value).all(|(probe, required_value)| {
+                        if let Some(current_probe_val) = self.reader.probe_values.get(probe) {
+                            *required_value == *current_probe_val
+                        } else {
+                            false
+                        }
+                    })
+                } else {
+                    true
+                };
                 // First, update all the wires dependencies. This will determine during the dependency finding which statement will provide which
                 // wire value (this is possible because we are just tracing dependencies between statements). In the same pass, we can do registers.
                 // We will have to place them in a buffer, because the dependencies are delayed by one clock cycle.
-                if let Some(symb) = &node.inner.assigns_to { // Add conditions
-                    if node.is_register {
-                        new_reg_providers.insert(symb.clone(), dpdg_node.clone());
-                    } else {
-                        self.dependency_state.insert(symb.clone(), dpdg_node.clone());
+                if conditions_satisfied {
+                    if let Some(symb) = &node.inner.assigns_to { // Add conditions
+                        if node.is_register {
+                            if node.inner.kind == PDGSpecNodeKind::DataDefinition {
+                                println!("Register init found");
+                                // Handle register resets.
+                                if self.reader.current_time == 1 {
+                                    self.dependency_state.insert(symb.clone(), dpdg_node.clone());
+                                }
+                            } else {
+                                new_reg_providers.insert(symb.clone(), dpdg_node.clone());
+                            }
+                        } else {
+                            self.dependency_state.insert(symb.clone(), dpdg_node.clone());
+                        }
                     }
-                }
 
-                if node.inner.kind == PDGSpecNodeKind::ControlFlow {
-                    controlflow_providers.insert(node.inner.clone(), dpdg_node.clone());
+                    if node.inner.kind == PDGSpecNodeKind::ControlFlow {
+                        controlflow_providers.insert(node.inner.clone(), dpdg_node.clone());
+                    }
                 }
             }
             for (node, dpdg_node) in &new_nodes {
+                // A statement may depend on multiple statements that provide the same symbol.
+                // We only want to process the symbol once, otherwise we get duplicate dependencies.
+                let mut deps_processed = vec![];
+                // println!("Statement {:?}. Dependencies: {:?}", node.borrow().inner.name, node.borrow().dependencies.iter().map(|d| d.0.borrow().inner.name.clone()).collect::<Vec<_>>());
                 for (dep_node, dep_edge) in &node.borrow().dependencies {
-                    match dep_edge.kind {
-                        PDGSpecEdgeKind::Data => {
-                            if let Some(dep_str) = &dep_node.borrow().inner.assigns_to {
-                                if let Some(dep) = self.dependency_state.get(dep_str) {
-                                    dpdg_node.borrow_mut().dependencies.push((dep.clone(), PDGSpecEdgeKind::Data));
+                    if let Some(ref assigns_to) = dep_node.borrow().inner.assigns_to {
+                        // if node.borrow().inner.name == "connect_io.r_data" {
+                        //     println!("Processing dep {:?} with edge {:?}", dep_node.borrow().inner.name, dep_edge);
+                        //     println!("====> Assigns to: {:?}", assigns_to);
+                        // }
+                        if deps_processed.contains(assigns_to) {
+                            continue;
+                        }
+                    }
+                    let conditions_satisfied = if let Some(conds) = &dep_edge.condition {
+                        conds.probe_name.iter().zip(&conds.probe_value).all(|(probe, required_value)| {
+                            // println!("Probe: {}, required: {}, actual: ", probe, required_value);
+                            // println!("{:?}", self.reader.probe_values);
+                            if let Some(current_probe_val) = self.reader.probe_values.get(probe) {
+                                *required_value == *current_probe_val
+                            } else {
+                                false
+                            }
+                        })
+                    } else {
+                        true
+                    };
+
+                    if conditions_satisfied {
+                        match dep_edge.kind {
+                            PDGSpecEdgeKind::Data => {
+                                if let Some(dep_str) = &dep_node.borrow().inner.assigns_to {
+                                    if let Some(dep) = self.dependency_state.get(dep_str) {
+                                        dpdg_node.borrow_mut().dependencies.push((dep.clone(), PDGSpecEdgeKind::Data));
+                                    }
+                                    deps_processed.push(dep_str.clone());
                                 }
                             }
-                        }
-                        PDGSpecEdgeKind::Conditional => {
-                            if let Some(cond_dep) = controlflow_providers.get(&dep_node.borrow().inner) {
-                                dpdg_node.borrow_mut().dependencies.push((cond_dep.clone(), PDGSpecEdgeKind::Conditional));
+                            PDGSpecEdgeKind::Conditional => {
+                                if let Some(cond_dep) = controlflow_providers.get(&dep_node.borrow().inner) {
+                                    dpdg_node.borrow_mut().dependencies.push((cond_dep.clone(), PDGSpecEdgeKind::Conditional));
+                                }
                             }
+                            _ => ()
                         }
-                        _ => ()
                     }
                 }
             }
@@ -132,9 +189,16 @@ impl GraphBuilder {
             }
             println!("{}", self.reader.current_time);
             println!("Activated nodes: {:?}", activated_statements);
+
+            // println!("{:#?}", self.reader.probe_values);
         }
 
-        println!("Full graph: {:#?}", all_nodes[all_nodes.len()-1]);
+        // println!("Full graph: {:#?}", all_nodes[all_nodes.len()-1]);
+        println!("Amount of nodes: {}", all_nodes.len());
+
+        let f = File::create("dynpdg.json")?;
+        let writer = BufWriter::new(f);
+        serde_json::to_writer_pretty(writer, &all_nodes[all_nodes.len()-1])?;
 
         Ok(())
     }
@@ -208,8 +272,35 @@ impl VcdReader {
         // println!("{:#?}", header);
         let clock = header.find_var(&["TOP", "svsimTestbench", "clock"]).ok_or(Error::ClockNotFoundError)?.code;
         let reset = header.find_var(&["TOP", "svsimTestbench", "reset"]).ok_or(Error::ClockNotFoundError)?.code;
+
+        let probes = Self::find_probes(&header);
         
-        Ok(VcdReader { parser, header, clock, reset, current_time: 0, clock_val: vcd::Value::X, changes_buffer: vec![] })
+        Ok(VcdReader { parser, header, clock, reset, current_time: 0, clock_val: vcd::Value::X, changes_buffer: vec![], probes, probe_values: HashMap::new(), probe_change_buffer: vec![] })
+    }
+
+    fn find_probes(header: &vcd::Header) -> HashMap<IdCode, Vec<String>> {
+        let mut probes = HashMap::new();
+        if let Some(dut) = header.find_scope(&["TOP", "svsimTestbench", "dut"]) {
+            let mut stack = vec![];
+            stack.extend_from_slice(&dut.items.iter().map(|i| ("".to_string(), i)).collect::<Vec<_>>());
+            while let Some((prefix, item)) = stack.pop() {
+                match item {
+                    vcd::ScopeItem::Scope(scope) => {
+                        stack.extend_from_slice(&scope.items.iter().map(|i| (prefix.to_string() + &scope.identifier, i)).collect::<Vec<_>>());
+                    }
+                    vcd::ScopeItem::Var(var) => {
+                        // Probes may have the same IdCode if they are driven by the same value.
+                        // We need to check if it exists and update the vector if it does.
+                        if var.reference.starts_with("probe_") {
+                            probes.entry(var.code).and_modify(|e: &mut Vec<String>| e.push(prefix.clone() + "." + &var.reference)).or_insert(vec![prefix + "." + &var.reference]);
+                        }
+                    }
+                    _ => ()
+                }
+            }
+        }
+
+        probes
     }
 
     fn find_var(&self, hierarchy: impl AsRef<str>) -> Result<IdCode> {
@@ -234,6 +325,10 @@ impl VcdReader {
                         break;
                     } else {
                         changes.append(&mut self.changes_buffer);
+                        for change in &self.probe_change_buffer {
+                            self.probe_values.insert(change.0.clone(), change.1);
+                        }
+                        self.probe_change_buffer.clear();
                     }
                 }
                 Command::ChangeScalar(i, v) if i == self.clock => {
@@ -248,6 +343,11 @@ impl VcdReader {
                     self.changes_buffer.push(ValueChange { id: i, value: v });
                 }
                 Command::ChangeVector(i, v) => {
+                    if let Some(probes) = self.probes.get(&i) {
+                        for probe in probes {
+                            self.probe_change_buffer.push((probe.clone(), bitvector_to_unsigned(&v)));
+                        }
+                    }
                     // println!("Change in vector: {:?}", i);
                 }
                 _ => ()
@@ -260,4 +360,19 @@ impl VcdReader {
 
         Ok((changes, eof_reached))
     }
+}
+
+fn bitvector_to_unsigned(input_vec: &vcd::Vector) -> u64 {
+    let mut val = 0;
+    let mut bitval = 1;
+    // Workaround because the VCD crate does not allow for direct reversed iterator.
+    let mut rev_bits = input_vec.iter().collect::<Vec<_>>();
+    rev_bits.reverse();
+    for input in rev_bits {
+        if input == vcd::Value::V1 {
+            val += bitval;
+        }
+        bitval <<= 1;
+    }
+    val
 }

@@ -39,7 +39,7 @@ pub fn pdg_convert(pdg: PDGSpec) -> Result<()> {
     let self_dependencies = groups.iter().filter_map(|g| {
         let own_index = g[0].1 as u32;
         if pdg.edges.iter().any(|e| (edgemap[&e.to] == own_index) && (edgemap[&e.from] == own_index) && e.clocked && e.kind == PDGSpecEdgeKind::Data) {
-            Some(PDGSpecEdge {from: own_index, to: own_index, kind: PDGSpecEdgeKind::Data, clocked: true})
+            Some(PDGSpecEdge {from: own_index, to: own_index, kind: PDGSpecEdgeKind::Data, clocked: true, condition: None})
         } else {
             None
         }
