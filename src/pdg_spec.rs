@@ -26,6 +26,7 @@ pub struct PDGSpecNode {
     pub kind: PDGSpecNodeKind,
     pub clocked: bool,
     pub assigns_to: Option<String>,
+    pub is_chisel_statement: bool,
     pub condition: Option<PDGSpecCondition>
 }
 
@@ -88,4 +89,56 @@ pub struct CFGSpecStatement {
     pub true_branch: Option<Vec<CFGSpecStatement>>,
     #[serde(default)]
     pub false_branch: Option<Vec<CFGSpecStatement>>,
+}
+
+/// A format of the PDG that allows for storage and export of additional information.
+#[derive(Serialize, Deserialize, Clone)]
+pub struct ExportablePDG {
+    pub vertices: Vec<ExportablePDGNode>,
+    pub edges: Vec<ExportablePDGEdge>
+}
+
+impl ExportablePDG {
+    pub fn empty() -> Self {
+        ExportablePDG { vertices: vec![], edges: vec![] }
+    }
+}
+
+impl From<PDGSpec> for ExportablePDG {
+    fn from(value: PDGSpec) -> Self {
+        ExportablePDG { vertices: value.vertices.into_iter().map(|v| v.into()).collect(),
+            edges: value.edges.into_iter().map(|e| e.into()).collect() }
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct ExportablePDGNode {
+    pub file: String,
+    pub line: u32,
+    pub char: u32,
+    pub name: String,
+    pub kind: PDGSpecNodeKind,
+    pub clocked: bool,
+    pub timestamp: u64,
+    pub is_chisel_assignment: bool
+}
+
+impl From<PDGSpecNode> for ExportablePDGNode {
+    fn from(value: PDGSpecNode) -> Self {
+        ExportablePDGNode { file: value.file, line: value.line, char: value.char, name: value.name, kind: value.kind, clocked: value.clocked, is_chisel_assignment: value.is_chisel_statement, timestamp: 0 }
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
+pub struct ExportablePDGEdge {
+    pub from: u32,
+    pub to: u32,
+    pub kind: PDGSpecEdgeKind,
+    pub clocked: bool
+}
+
+impl From<PDGSpecEdge> for ExportablePDGEdge {
+    fn from(value: PDGSpecEdge) -> Self {
+        ExportablePDGEdge { from: value.from, to: value.to, kind: value.kind, clocked: value.clocked }
+    }
 }

@@ -1,4 +1,4 @@
-use std::{fs::{read_to_string, File}, io::BufReader};
+use std::{fs::{read_to_string, File}, io::{BufReader, BufWriter}};
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use graphbuilder::GraphBuilder;
@@ -58,7 +58,13 @@ fn main() -> Result<()> {
             let sliced = slicing::pdg_slice(pdg_raw, &slice_criterion)?;
             slicing::write_pdg(&sliced, "out_pdg.json")?;
         },
-        Commands::Convert {..} => conversion::pdg_convert_to_source(pdg_raw)?,
+        Commands::Convert {..} => {
+            let converted = conversion::pdg_convert_to_source(pdg_raw.into());
+            let output_file = File::create("out_chisel_pdg.json")?;
+            let writer = BufWriter::new(output_file);
+        
+            serde_json::to_writer_pretty(writer, &converted)?;
+        },
         Commands::DynSlice { pdg_path, vcd_path, slice_criterion } => {
             let sliced = slicing::pdg_slice(pdg_raw, &slice_criterion)?;
             slicing::write_pdg(&sliced, "out_pdg.json")?;

@@ -7,6 +7,7 @@
   "kind": "IO",
   "clocked": false,
   "assignsTo": "io.en",
+  "isChiselStatement": true,
   "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/vectors.test.scala",
@@ -16,6 +17,7 @@
   "kind": "IO",
   "clocked": false,
   "assignsTo": null,
+  "isChiselStatement": true,
   "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/vectors.test.scala",
@@ -25,6 +27,7 @@
   "kind": "Definition",
   "clocked": false,
   "assignsTo": null,
+  "isChiselStatement": false,
   "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/vectors.test.scala",
@@ -34,6 +37,7 @@
   "kind": "Definition",
   "clocked": false,
   "assignsTo": null,
+  "isChiselStatement": false,
   "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/vectors.test.scala",
@@ -43,6 +47,7 @@
   "kind": "Definition",
   "clocked": false,
   "assignsTo": null,
+  "isChiselStatement": false,
   "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/vectors.test.scala",
@@ -52,6 +57,7 @@
   "kind": "Definition",
   "clocked": false,
   "assignsTo": null,
+  "isChiselStatement": false,
   "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/vectors.test.scala",
@@ -61,6 +67,7 @@
   "kind": "Connection",
   "clocked": false,
   "assignsTo": "regfile._registers_WIRE.0",
+  "isChiselStatement": false,
   "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/vectors.test.scala",
@@ -70,6 +77,7 @@
   "kind": "Connection",
   "clocked": false,
   "assignsTo": "regfile._registers_WIRE.1",
+  "isChiselStatement": false,
   "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/vectors.test.scala",
@@ -79,6 +87,7 @@
   "kind": "Connection",
   "clocked": false,
   "assignsTo": "regfile._registers_WIRE.2",
+  "isChiselStatement": false,
   "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/vectors.test.scala",
@@ -88,6 +97,7 @@
   "kind": "Connection",
   "clocked": false,
   "assignsTo": "regfile._registers_WIRE.3",
+  "isChiselStatement": false,
   "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/vectors.test.scala",
@@ -97,6 +107,7 @@
   "kind": "DataDefinition",
   "clocked": true,
   "assignsTo": "regfile.registers.0",
+  "isChiselStatement": true,
   "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/vectors.test.scala",
@@ -106,6 +117,7 @@
   "kind": "DataDefinition",
   "clocked": true,
   "assignsTo": "regfile.registers.1",
+  "isChiselStatement": true,
   "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/vectors.test.scala",
@@ -115,6 +127,7 @@
   "kind": "DataDefinition",
   "clocked": true,
   "assignsTo": "regfile.registers.2",
+  "isChiselStatement": true,
   "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/vectors.test.scala",
@@ -124,6 +137,7 @@
   "kind": "DataDefinition",
   "clocked": true,
   "assignsTo": "regfile.registers.3",
+  "isChiselStatement": true,
   "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/vectors.test.scala",
@@ -133,6 +147,7 @@
   "kind": "ControlFlow",
   "clocked": false,
   "assignsTo": null,
+  "isChiselStatement": true,
   "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/vectors.test.scala",
@@ -142,6 +157,7 @@
   "kind": "DataDefinition",
   "clocked": false,
   "assignsTo": "regfile.probe_XtoiZAfAAwiuhrYBJpIt",
+  "isChiselStatement": true,
   "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/vectors.test.scala",
@@ -151,6 +167,7 @@
   "kind": "Connection",
   "clocked": true,
   "assignsTo": "regfile.registers.0",
+  "isChiselStatement": true,
   "condition": {
   "probeName": ["regfile.probe_XtoiZAfAAwiuhrYBJpIt"],
   "probeValue": [0]
@@ -163,6 +180,7 @@
   "kind": "Connection",
   "clocked": true,
   "assignsTo": "regfile.registers.1",
+  "isChiselStatement": true,
   "condition": {
   "probeName": ["regfile.probe_XtoiZAfAAwiuhrYBJpIt"],
   "probeValue": [1]
@@ -175,6 +193,7 @@
   "kind": "Connection",
   "clocked": true,
   "assignsTo": "regfile.registers.2",
+  "isChiselStatement": true,
   "condition": {
   "probeName": ["regfile.probe_XtoiZAfAAwiuhrYBJpIt"],
   "probeValue": [2]
@@ -187,6 +206,7 @@
   "kind": "Connection",
   "clocked": true,
   "assignsTo": "regfile.registers.3",
+  "isChiselStatement": true,
   "condition": {
   "probeName": ["regfile.probe_XtoiZAfAAwiuhrYBJpIt"],
   "probeValue": [3]
@@ -199,6 +219,7 @@
   "kind": "DataDefinition",
   "clocked": false,
   "assignsTo": "regfile.probe_BVwQJPGjsMFtphCfLLpF",
+  "isChiselStatement": true,
   "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/vectors.test.scala",
@@ -208,6 +229,7 @@
   "kind": "Connection",
   "clocked": false,
   "assignsTo": "regfile.io.r_data",
+  "isChiselStatement": true,
   "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/vectors.test.scala",
@@ -217,6 +239,7 @@
   "kind": "DataDefinition",
   "clocked": true,
   "assignsTo": "counter",
+  "isChiselStatement": true,
   "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/vectors.test.scala",
@@ -226,6 +249,7 @@
   "kind": "ControlFlow",
   "clocked": false,
   "assignsTo": null,
+  "isChiselStatement": true,
   "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/vectors.test.scala",
@@ -235,6 +259,7 @@
   "kind": "DataDefinition",
   "clocked": false,
   "assignsTo": "_counter_T",
+  "isChiselStatement": false,
   "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/vectors.test.scala",
@@ -244,6 +269,7 @@
   "kind": "DataDefinition",
   "clocked": false,
   "assignsTo": "_counter_T_1",
+  "isChiselStatement": false,
   "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/vectors.test.scala",
@@ -253,6 +279,7 @@
   "kind": "Connection",
   "clocked": true,
   "assignsTo": "counter",
+  "isChiselStatement": true,
   "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/vectors.test.scala",
@@ -262,6 +289,7 @@
   "kind": "Connection",
   "clocked": false,
   "assignsTo": "regfile.io.r_addr",
+  "isChiselStatement": true,
   "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/vectors.test.scala",
@@ -271,6 +299,7 @@
   "kind": "Connection",
   "clocked": false,
   "assignsTo": "regfile.io.w_addr",
+  "isChiselStatement": true,
   "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/vectors.test.scala",
@@ -280,6 +309,7 @@
   "kind": "Connection",
   "clocked": false,
   "assignsTo": "regfile.io.w_en",
+  "isChiselStatement": true,
   "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/vectors.test.scala",
@@ -289,6 +319,7 @@
   "kind": "DataDefinition",
   "clocked": false,
   "assignsTo": "_regfile_io_w_data_T",
+  "isChiselStatement": false,
   "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/vectors.test.scala",
@@ -298,6 +329,7 @@
   "kind": "DataDefinition",
   "clocked": false,
   "assignsTo": "_regfile_io_w_data_T_1",
+  "isChiselStatement": false,
   "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/vectors.test.scala",
@@ -307,6 +339,7 @@
   "kind": "Connection",
   "clocked": false,
   "assignsTo": "regfile.io.w_data",
+  "isChiselStatement": true,
   "condition": null
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/vectors.test.scala",
@@ -316,6 +349,7 @@
   "kind": "Connection",
   "clocked": false,
   "assignsTo": "io.res",
+  "isChiselStatement": true,
   "condition": null
 }],
   "edges": [{
@@ -733,14 +767,16 @@
   "char": 19,
   "name": "regfile.pred_io_w_en",
   "kind": "DataDefinition",
-  "clocked": false
+  "clocked": false,
+  "isChiselStatement": false
 },{
   "file": "home/jarl/Documents/CESE/thesis/tywaves_test/tywaves-chisel/example/vectors.test.scala",
   "line": 46,
   "char": 17,
   "name": "pred_io_en",
   "kind": "DataDefinition",
-  "clocked": false
+  "clocked": false,
+  "isChiselStatement": false
 }],
   "cfg": [{"stmtRef": 0}, {"stmtRef": 1}, {"stmtRef": 2}, {"stmtRef": 3}, {"stmtRef": 4}, {"stmtRef": 5}, {"stmtRef": 6}, {"stmtRef": 7}, {"stmtRef": 8}, {"stmtRef": 9}, {"stmtRef": 10}, {"stmtRef": 11}, {"stmtRef": 12}, {"stmtRef": 13}, {"stmtRef": 14, "predStmtRef": 0, "trueBranch": [{"stmtRef": 15}, {"stmtRef": 16}, {"stmtRef": 17}, {"stmtRef": 18}, {"stmtRef": 19}]}, {"stmtRef": 20}, {"stmtRef": 21}, {"stmtRef": 22}, {"stmtRef": 23, "predStmtRef": 1, "trueBranch": [{"stmtRef": 24}, {"stmtRef": 25}, {"stmtRef": 26}]}, {"stmtRef": 27}, {"stmtRef": 28}, {"stmtRef": 29}, {"stmtRef": 30}, {"stmtRef": 31}, {"stmtRef": 32}, {"stmtRef": 33}]
 }

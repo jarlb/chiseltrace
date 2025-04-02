@@ -1,9 +1,8 @@
-use std::{cell::RefCell, collections::{BTreeMap, HashMap, HashSet}, fs::File, io::BufWriter, rc::Rc};
-use anyhow::Result;
+use std::{cell::RefCell, collections::{BTreeMap, HashMap, HashSet}, rc::Rc};
 use itertools::Itertools;
-use crate::{graphbuilder::DynPDGNode, pdg_spec::{PDGSpec, PDGSpecEdge, PDGSpecEdgeKind, PDGSpecNode, PDGSpecNodeKind}};
+use crate::{graphbuilder::DynPDGNode, pdg_spec::{ExportablePDG, ExportablePDGEdge, ExportablePDGNode, PDGSpecEdgeKind, PDGSpecNodeKind}};
 
-pub fn pdg_convert_to_source(pdg: PDGSpec) -> Result<()> {
+pub fn pdg_convert_to_source(pdg: ExportablePDG) -> ExportablePDG {
     // Here, we convert the PDG from FIRRTL representation to source representation.
     // The only source information that is available is the source file and line mapping (TODO: ALSO CHECK THE CHARACTER INDEX!!)
     // Based on this, we can group nodes that belong to the same source statement. One issue is that
@@ -12,9 +11,9 @@ pub fn pdg_convert_to_source(pdg: PDGSpec) -> Result<()> {
     // This will cause them to get grouped, which may not be desired.
 
     // First step is to make groups of vertices.
-    let mut grouped_nodes: HashMap<(String, u32), Vec<(PDGSpecNode, usize)>> = HashMap::new();
+    let mut grouped_nodes: HashMap<(String, u32, u64), Vec<(ExportablePDGNode, usize)>> = HashMap::new();
     for (i, node) in pdg.vertices.iter().enumerate() {
-        grouped_nodes.entry((node.file.clone(), node.line)).or_default().push((node.clone(), i));
+        grouped_nodes.entry((node.file.clone(), node.line, node.timestamp)).or_default().push((node.clone(), i));
     }
 
     // Redirect all Index edges. The probes will be removed in the next step
@@ -29,12 +28,13 @@ pub fn pdg_convert_to_source(pdg: PDGSpec) -> Result<()> {
             }
             for r_e in &mut replacement_edges {
                 r_e.from = e.from;
+                r_e.clocked = e.clocked;
                 r_e.kind = PDGSpecEdgeKind::Index;
             }
             // println!("{:#?}", replacement_edges);
             replacement_edges
         } else {
-            if !pdg.vertices[e.from as usize].name.starts_with("defnode_probe") {
+            if !pdg.vertices[e.from as usize].name.starts_with("defnode_probe") { // Should definitely be replaced in the future
                 vec![e.clone()]
             } else { vec![] }
         }
@@ -82,7 +82,7 @@ pub fn pdg_convert_to_source(pdg: PDGSpec) -> Result<()> {
     // somewhere in the grouped nodes. We should check from each group and add it if needed.
     // Also, we need to dedup the edges.
     let outgoing_edges = new_edges.iter()
-        .map(|e| PDGSpecEdge{from: edgemap[&e.from], to: edgemap[&e.to], ..e.clone()})
+        .map(|e| ExportablePDGEdge{from: edgemap[&e.from], to: edgemap[&e.to], ..e.clone()})
         .filter(|e| {
         // If both to and from point to the same group, remove the edge.
         e.to != e.from
@@ -103,7 +103,7 @@ pub fn pdg_convert_to_source(pdg: PDGSpec) -> Result<()> {
         
         'outer: for &node_idx in &group_indices {
             if visited.contains(&node_idx) {
-                continue; // Skip already-visited nodes
+                continue;
             }
             let mut dfs_stack = vec![(node_idx, false, vec![node_idx])]; // (current_node, clocked_found, visited)
         
@@ -129,16 +129,12 @@ pub fn pdg_convert_to_source(pdg: PDGSpec) -> Result<()> {
             }
         }
 
-        //new_edges.iter().any(|e| (edgemap[&e.to] == own_index) && (edgemap[&e.from] == own_index) && e.clocked && e.kind == PDGSpecEdgeKind::Data)
         if cycle_found {
-            // println!("Adding: {:?}", PDGSpecEdge {from: own_index, to: own_index, kind: PDGSpecEdgeKind::Data, clocked: true, condition: None});
-            Some(PDGSpecEdge {from: edgemap[&own_index], to: edgemap[&own_index], kind: PDGSpecEdgeKind::Data, clocked: true, condition: None})
+            Some(ExportablePDGEdge {from: edgemap[&own_index], to: edgemap[&own_index], kind: PDGSpecEdgeKind::Data, clocked: true})
         } else {
             None
         }
     });
-
-    let merged_edges = outgoing_edges.chain(self_dependencies).collect::<Vec<_>>();
 
     let new_verts = groups.iter().map(|g| {
         let contains_data = g.iter().any(|(v,_)| v.kind == PDGSpecNodeKind::DataDefinition || v.kind == PDGSpecNodeKind::Connection);
@@ -155,25 +151,32 @@ pub fn pdg_convert_to_source(pdg: PDGSpec) -> Result<()> {
             PDGSpecNodeKind::Definition
         };
         let v0 = &g[0].0;
-        PDGSpecNode {name: format!("{}:{}", v0.file.split("/").last().unwrap(), v0.line), kind: vert_kind, ..v0.clone()}
+        let filename = v0.file.split("/").last().unwrap();
+        let primary_statement = g.iter().find(|n| n.0.is_chisel_assignment);
+        let node_name = if let Some((stmt, _)) = primary_statement {
+            format!("{} ({}:{})", stmt.name, filename, stmt.line)
+        } else {
+            format!("{}:{}", filename , v0.line)
+        };
+        ExportablePDGNode {name: node_name, kind: vert_kind, ..v0.clone()}
     }).collect::<Vec<_>>();
 
-    let converted_pdg = PDGSpec {
+    let merged_edges = outgoing_edges.chain(self_dependencies).into_iter()
+    .map(|e| {
+        // Some edges may be unjustly marked as non-clocked. We need to restore them
+        ExportablePDGEdge { clocked: new_verts[e.from as usize].clocked, ..e }
+    })  
+    .unique()
+    .collect::<Vec<_>>();
+
+    ExportablePDG {
         vertices: new_verts,
-        edges: merged_edges,
-        predicates: pdg.predicates,
-        cfg: pdg.cfg
-    };
-
-    let output_file = File::create("out_chisel_pdg.json")?;
-    let writer = BufWriter::new(output_file);
-
-    serde_json::to_writer_pretty(writer, &converted_pdg)?;
-    Ok(())
+        edges: merged_edges
+    }
 }
 
-pub fn dpdg_convert_linked_to_spec(root: Rc<RefCell<DynPDGNode>>) -> PDGSpec {
-    let mut pdg = PDGSpec::empty();
+pub fn dpdg_make_exportable(root: Rc<RefCell<DynPDGNode>>) -> ExportablePDG {
+    let mut pdg = ExportablePDG::empty();
     // We keep track of the nodes we have seen so far. If we encounter a new node, we add it to the scanned nodes.
     // If we encounter a node that was previously scanned, we use that nodes index instead.
     let mut scanned_nodes = vec![];
@@ -197,18 +200,18 @@ pub fn dpdg_convert_linked_to_spec(root: Rc<RefCell<DynPDGNode>>) -> PDGSpec {
                 scanned_nodes.len()-1
             };
             
-            edges.insert(PDGSpecEdge{ from: this_idx as u32, to: dep_idx as u32, kind: *kind, clocked: borrowed_node.inner.clocked, condition: None});
+            edges.insert(ExportablePDGEdge { from: this_idx as u32, to: dep_idx as u32, kind: *kind, clocked: borrowed_node.inner.clocked });
             stack.push(dep.clone());
         }
     }
 
     let pdg_verts = scanned_nodes.iter().map(|el| {
         let node = el.borrow();
-        PDGSpecNode { name: format!("{} at t={}", node.inner.name, node.timestamp), ..node.inner.clone()}
+        ExportablePDGNode { name: format!("{} at t={}", node.inner.name, node.timestamp), timestamp: node.timestamp, ..node.inner.clone().into()}
     }).collect::<Vec<_>>();
 
     pdg.vertices = pdg_verts;
-    pdg.edges = edges.into_iter().collect::<Vec<_>>();
+    pdg.edges = edges.into_iter().collect::<Vec<_>>().into();
 
     pdg
 }

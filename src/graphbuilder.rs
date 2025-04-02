@@ -3,7 +3,7 @@ use serde::Serialize;
 use vcd::{Command as Command, IdCode};
 use anyhow::Result;
 
-use crate::{conversion::dpdg_convert_linked_to_spec, pdg_spec::{PDGSpec, PDGSpecEdge, PDGSpecEdgeKind, PDGSpecNode, PDGSpecNodeKind}, Error};
+use crate::{conversion::{dpdg_make_exportable, pdg_convert_to_source}, pdg_spec::{PDGSpec, PDGSpecEdge, PDGSpecEdgeKind, PDGSpecNode, PDGSpecNodeKind}, Error};
 
 pub struct GraphBuilder {
     reader: VcdReader,
@@ -191,7 +191,7 @@ impl GraphBuilder {
         // println!("Full graph: {:#?}", all_nodes[all_nodes.len()-1]);
         println!("Amount of nodes: {}", all_nodes.len());
 
-        let converted_pdg = dpdg_convert_linked_to_spec(all_nodes[all_nodes.len()-1].clone());
+        let converted_pdg = pdg_convert_to_source(dpdg_make_exportable(all_nodes[all_nodes.len()-1].clone()));
 
         println!("Num verts: {}, num edges: {}", converted_pdg.vertices.len(), converted_pdg.edges.len());
 
