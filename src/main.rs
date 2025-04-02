@@ -9,7 +9,6 @@ mod pdg_spec;
 mod conversion;
 mod slicing;
 mod errors;
-mod cfg;
 mod graphbuilder;
 
 #[derive(Parser, Debug)]
@@ -59,7 +58,7 @@ fn main() -> Result<()> {
             let sliced = slicing::pdg_slice(pdg_raw, &slice_criterion)?;
             slicing::write_pdg(&sliced, "out_pdg.json")?;
         },
-        Commands::Convert {..} => conversion::pdg_convert(pdg_raw)?,
+        Commands::Convert {..} => conversion::pdg_convert_to_source(pdg_raw)?,
         Commands::DynSlice { pdg_path, vcd_path, slice_criterion } => {
             let sliced = slicing::pdg_slice(pdg_raw, &slice_criterion)?;
             slicing::write_pdg(&sliced, "out_pdg.json")?;

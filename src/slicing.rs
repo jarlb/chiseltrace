@@ -1,7 +1,6 @@
 use std::path::Path;
 use std::{cell::RefCell, collections::HashMap, fs::File, io::BufWriter, rc::Rc};
 use anyhow::{anyhow, Result};
-use crate::cfg::CFGStatement;
 use crate::errors::Error;
 use crate::pdg_spec::{CFGSpecStatement, LinkedPDGNode, PDGSpec, PDGSpecEdge};
 

@@ -6,6 +6,7 @@
       "char": 16,
       "name": "input_io.en",
       "kind": "IO",
+      "clocked": false,
       "assignsTo": "io.en",
       "condition": null
     },
@@ -15,6 +16,7 @@
       "char": 16,
       "name": "output_io.res",
       "kind": "IO",
+      "clocked": false,
       "assignsTo": null,
       "condition": null
     },
@@ -24,6 +26,7 @@
       "char": 36,
       "name": "defwire__registers_WIRE.0",
       "kind": "Definition",
+      "clocked": false,
       "assignsTo": null,
       "condition": null
     },
@@ -33,6 +36,7 @@
       "char": 36,
       "name": "defwire__registers_WIRE.1",
       "kind": "Definition",
+      "clocked": false,
       "assignsTo": null,
       "condition": null
     },
@@ -42,6 +46,7 @@
       "char": 36,
       "name": "defwire__registers_WIRE.2",
       "kind": "Definition",
+      "clocked": false,
       "assignsTo": null,
       "condition": null
     },
@@ -51,6 +56,7 @@
       "char": 36,
       "name": "defwire__registers_WIRE.3",
       "kind": "Definition",
+      "clocked": false,
       "assignsTo": null,
       "condition": null
     },
@@ -60,6 +66,7 @@
       "char": 36,
       "name": "connect__registers_WIRE.0",
       "kind": "Connection",
+      "clocked": false,
       "assignsTo": "regfile._registers_WIRE.0",
       "condition": null
     },
@@ -69,6 +76,7 @@
       "char": 36,
       "name": "connect__registers_WIRE.1",
       "kind": "Connection",
+      "clocked": false,
       "assignsTo": "regfile._registers_WIRE.1",
       "condition": null
     },
@@ -78,6 +86,7 @@
       "char": 36,
       "name": "connect__registers_WIRE.2",
       "kind": "Connection",
+      "clocked": false,
       "assignsTo": "regfile._registers_WIRE.2",
       "condition": null
     },
@@ -87,6 +96,7 @@
       "char": 36,
       "name": "connect__registers_WIRE.3",
       "kind": "Connection",
+      "clocked": false,
       "assignsTo": "regfile._registers_WIRE.3",
       "condition": null
     },
@@ -96,6 +106,7 @@
       "char": 28,
       "name": "defreg_registers.0",
       "kind": "DataDefinition",
+      "clocked": true,
       "assignsTo": "regfile.registers.0",
       "condition": null
     },
@@ -105,6 +116,7 @@
       "char": 28,
       "name": "defreg_registers.1",
       "kind": "DataDefinition",
+      "clocked": true,
       "assignsTo": "regfile.registers.1",
       "condition": null
     },
@@ -114,6 +126,7 @@
       "char": 28,
       "name": "defreg_registers.2",
       "kind": "DataDefinition",
+      "clocked": true,
       "assignsTo": "regfile.registers.2",
       "condition": null
     },
@@ -123,6 +136,7 @@
       "char": 28,
       "name": "defreg_registers.3",
       "kind": "DataDefinition",
+      "clocked": true,
       "assignsTo": "regfile.registers.3",
       "condition": null
     },
@@ -132,6 +146,7 @@
       "char": 19,
       "name": "cond_on_[io.w_en]",
       "kind": "ControlFlow",
+      "clocked": false,
       "assignsTo": null,
       "condition": null
     },
@@ -141,6 +156,7 @@
       "char": 28,
       "name": "defnode_probe_XtoiZAfAAwiuhrYBJpIt",
       "kind": "DataDefinition",
+      "clocked": false,
       "assignsTo": "regfile.probe_XtoiZAfAAwiuhrYBJpIt",
       "condition": null
     },
@@ -150,6 +166,7 @@
       "char": 28,
       "name": "connect_registers.0",
       "kind": "Connection",
+      "clocked": true,
       "assignsTo": "regfile.registers.0",
       "condition": {
         "probeName": [
@@ -166,6 +183,7 @@
       "char": 28,
       "name": "connect_registers.1",
       "kind": "Connection",
+      "clocked": true,
       "assignsTo": "regfile.registers.1",
       "condition": {
         "probeName": [
@@ -182,6 +200,7 @@
       "char": 28,
       "name": "connect_registers.2",
       "kind": "Connection",
+      "clocked": true,
       "assignsTo": "regfile.registers.2",
       "condition": {
         "probeName": [
@@ -198,6 +217,7 @@
       "char": 28,
       "name": "connect_registers.3",
       "kind": "Connection",
+      "clocked": true,
       "assignsTo": "regfile.registers.3",
       "condition": {
         "probeName": [
@@ -214,6 +234,7 @@
       "char": 15,
       "name": "defnode_probe_BVwQJPGjsMFtphCfLLpF",
       "kind": "DataDefinition",
+      "clocked": false,
       "assignsTo": "regfile.probe_BVwQJPGjsMFtphCfLLpF",
       "condition": null
     },
@@ -223,6 +244,7 @@
       "char": 15,
       "name": "connect_io.r_data",
       "kind": "Connection",
+      "clocked": false,
       "assignsTo": "regfile.io.r_data",
       "condition": null
     },
@@ -232,6 +254,7 @@
       "char": 26,
       "name": "defreg_counter",
       "kind": "DataDefinition",
+      "clocked": true,
       "assignsTo": "counter",
       "condition": null
     },
@@ -241,6 +264,7 @@
       "char": 17,
       "name": "cond_on_[io.en]",
       "kind": "ControlFlow",
+      "clocked": false,
       "assignsTo": null,
       "condition": null
     },
@@ -250,6 +274,7 @@
       "char": 26,
       "name": "defnode__counter_T",
       "kind": "DataDefinition",
+      "clocked": false,
       "assignsTo": "_counter_T",
       "condition": null
     },
@@ -259,6 +284,7 @@
       "char": 26,
       "name": "defnode__counter_T_1",
       "kind": "DataDefinition",
+      "clocked": false,
       "assignsTo": "_counter_T_1",
       "condition": null
     },
@@ -268,6 +294,7 @@
       "char": 15,
       "name": "connect_counter",
       "kind": "Connection",
+      "clocked": true,
       "assignsTo": "counter",
       "condition": null
     },
@@ -277,6 +304,7 @@
       "char": 23,
       "name": "connect_regfile.io.r_addr",
       "kind": "Connection",
+      "clocked": false,
       "assignsTo": "regfile.io.r_addr",
       "condition": null
     },
@@ -286,6 +314,7 @@
       "char": 23,
       "name": "connect_regfile.io.w_addr",
       "kind": "Connection",
+      "clocked": false,
       "assignsTo": "regfile.io.w_addr",
       "condition": null
     },
@@ -295,6 +324,7 @@
       "char": 21,
       "name": "connect_regfile.io.w_en",
       "kind": "Connection",
+      "clocked": false,
       "assignsTo": "regfile.io.w_en",
       "condition": null
     },
@@ -304,6 +334,7 @@
       "char": 44,
       "name": "defnode__regfile_io_w_data_T",
       "kind": "DataDefinition",
+      "clocked": false,
       "assignsTo": "_regfile_io_w_data_T",
       "condition": null
     },
@@ -313,6 +344,7 @@
       "char": 44,
       "name": "defnode__regfile_io_w_data_T_1",
       "kind": "DataDefinition",
+      "clocked": false,
       "assignsTo": "_regfile_io_w_data_T_1",
       "condition": null
     },
@@ -322,6 +354,7 @@
       "char": 23,
       "name": "connect_regfile.io.w_data",
       "kind": "Connection",
+      "clocked": false,
       "assignsTo": "regfile.io.w_data",
       "condition": null
     },
@@ -331,6 +364,7 @@
       "char": 12,
       "name": "connect_io.res",
       "kind": "Connection",
+      "clocked": false,
       "assignsTo": "io.res",
       "condition": null
     }
@@ -514,6 +548,20 @@
     {
       "from": 21,
       "to": 10,
+      "kind": "Data",
+      "clocked": false,
+      "condition": {
+        "probeName": [
+          "regfile.probe_BVwQJPGjsMFtphCfLLpF"
+        ],
+        "probeValue": [
+          0
+        ]
+      }
+    },
+    {
+      "from": 21,
+      "to": 10,
       "kind": "Declaration",
       "clocked": false,
       "condition": {
@@ -536,6 +584,20 @@
         ],
         "probeValue": [
           0
+        ]
+      }
+    },
+    {
+      "from": 21,
+      "to": 11,
+      "kind": "Data",
+      "clocked": false,
+      "condition": {
+        "probeName": [
+          "regfile.probe_BVwQJPGjsMFtphCfLLpF"
+        ],
+        "probeValue": [
+          1
         ]
       }
     },
@@ -570,6 +632,20 @@
     {
       "from": 21,
       "to": 12,
+      "kind": "Data",
+      "clocked": false,
+      "condition": {
+        "probeName": [
+          "regfile.probe_BVwQJPGjsMFtphCfLLpF"
+        ],
+        "probeValue": [
+          2
+        ]
+      }
+    },
+    {
+      "from": 21,
+      "to": 12,
       "kind": "Declaration",
       "clocked": false,
       "condition": {
@@ -592,6 +668,20 @@
         ],
         "probeValue": [
           2
+        ]
+      }
+    },
+    {
+      "from": 21,
+      "to": 13,
+      "kind": "Data",
+      "clocked": false,
+      "condition": {
+        "probeName": [
+          "regfile.probe_BVwQJPGjsMFtphCfLLpF"
+        ],
+        "probeValue": [
+          3
         ]
       }
     },
@@ -640,6 +730,13 @@
     {
       "from": 24,
       "to": 22,
+      "kind": "Data",
+      "clocked": false,
+      "condition": null
+    },
+    {
+      "from": 24,
+      "to": 22,
       "kind": "Declaration",
       "clocked": false,
       "condition": null
@@ -703,6 +800,13 @@
     {
       "from": 27,
       "to": 22,
+      "kind": "Data",
+      "clocked": false,
+      "condition": null
+    },
+    {
+      "from": 27,
+      "to": 22,
       "kind": "Declaration",
       "clocked": false,
       "condition": null
@@ -710,6 +814,13 @@
     {
       "from": 27,
       "to": 26,
+      "kind": "Data",
+      "clocked": false,
+      "condition": null
+    },
+    {
+      "from": 28,
+      "to": 22,
       "kind": "Data",
       "clocked": false,
       "condition": null
@@ -785,6 +896,7 @@
       "char": 19,
       "name": "regfile.pred_io_w_en",
       "kind": "DataDefinition",
+      "clocked": false,
       "assignsTo": null,
       "condition": null
     },
@@ -794,6 +906,7 @@
       "char": 17,
       "name": "pred_io_en",
       "kind": "DataDefinition",
+      "clocked": false,
       "assignsTo": null,
       "condition": null
     }

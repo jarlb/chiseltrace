@@ -3,7 +3,7 @@ use serde::Serialize;
 use vcd::{Command as Command, IdCode};
 use anyhow::Result;
 
-use crate::{pdg_spec::{PDGSpec, PDGSpecEdge, PDGSpecEdgeKind, PDGSpecNode, PDGSpecNodeKind}, Error};
+use crate::{conversion::dpdg_convert_linked_to_spec, pdg_spec::{PDGSpec, PDGSpecEdge, PDGSpecEdgeKind, PDGSpecNode, PDGSpecNodeKind}, Error};
 
 pub struct GraphBuilder {
     reader: VcdReader,
@@ -38,15 +38,14 @@ struct ValueChange {
 struct PDGNode {
     inner: PDGSpecNode,
     provides: Vec<(Rc<RefCell<PDGNode>>, PDGSpecEdge)>,
-    dependencies: Vec<(Rc<RefCell<PDGNode>>, PDGSpecEdge)>,
-    is_register: bool
+    dependencies: Vec<(Rc<RefCell<PDGNode>>, PDGSpecEdge)>
 }
 
 #[derive(Debug, Serialize)]
-struct DynPDGNode {
-    inner: PDGSpecNode,
-    timestamp: u64,
-    dependencies: Vec<(Rc<RefCell<DynPDGNode>>, PDGSpecEdgeKind)>
+pub struct DynPDGNode {
+    pub inner: PDGSpecNode,
+    pub timestamp: u64,
+    pub dependencies: Vec<(Rc<RefCell<DynPDGNode>>, PDGSpecEdgeKind)>
 }
 
 impl GraphBuilder {
@@ -55,7 +54,7 @@ impl GraphBuilder {
 
         // Link up the nodes for easier processing
         let linked = pdg.vertices.iter().map(|v| {
-            Rc::new(RefCell::new(PDGNode {inner: v.clone(), provides: vec![], dependencies: vec![], is_register: false }))
+            Rc::new(RefCell::new(PDGNode {inner: v.clone(), provides: vec![], dependencies: vec![] }))
         }).collect::<Vec<_>>();
 
         for (node_idx, node) in linked.iter().enumerate() {
@@ -63,17 +62,12 @@ impl GraphBuilder {
                 if edge.from == node_idx as u32 {
                     let mut node_ref = node.borrow_mut();
                     node_ref.dependencies.push((linked[edge.to as usize].clone(), edge.clone()));
-                    if edge.clocked {
-                        node_ref.is_register = true;
-                    }
                 }
                 if edge.to == node_idx as u32 {
                     node.borrow_mut().provides.push((linked[edge.from as usize].clone(), edge.clone()));
                 }
             }
         }
-
-        println!("Node 21 deps: {:?}", linked[21].borrow().dependencies.iter().map(|d| d.0.borrow().inner.name.clone()).collect::<Vec<_>>());
 
         Ok(GraphBuilder { reader: vcd_reader, pdg, linked_nodes: linked, pred_values: HashMap::new(), pred_idx_to_id: vec![], dependency_state: HashMap::new() })
     }
@@ -111,11 +105,12 @@ impl GraphBuilder {
                 // We will have to place them in a buffer, because the dependencies are delayed by one clock cycle.
                 if conditions_satisfied {
                     if let Some(symb) = &node.inner.assigns_to { // Add conditions
-                        if node.is_register {
+                        if node.inner.clocked {
                             if node.inner.kind == PDGSpecNodeKind::DataDefinition {
                                 println!("Register init found");
                                 // Handle register resets.
                                 if self.reader.current_time == 1 {
+                                    println!("Register with reset: {:?}", node.inner.name);
                                     self.dependency_state.insert(symb.clone(), dpdg_node.clone());
                                 }
                             } else {
@@ -162,10 +157,10 @@ impl GraphBuilder {
 
                     if conditions_satisfied {
                         match dep_edge.kind {
-                            PDGSpecEdgeKind::Data => {
+                            PDGSpecEdgeKind::Data | PDGSpecEdgeKind::Index  => {
                                 if let Some(dep_str) = &dep_node.borrow().inner.assigns_to {
                                     if let Some(dep) = self.dependency_state.get(dep_str) {
-                                        dpdg_node.borrow_mut().dependencies.push((dep.clone(), PDGSpecEdgeKind::Data));
+                                        dpdg_node.borrow_mut().dependencies.push((dep.clone(), dep_edge.kind));
                                     }
                                     deps_processed.push(dep_str.clone());
                                 }
@@ -196,9 +191,13 @@ impl GraphBuilder {
         // println!("Full graph: {:#?}", all_nodes[all_nodes.len()-1]);
         println!("Amount of nodes: {}", all_nodes.len());
 
+        let converted_pdg = dpdg_convert_linked_to_spec(all_nodes[all_nodes.len()-1].clone());
+
+        println!("Num verts: {}, num edges: {}", converted_pdg.vertices.len(), converted_pdg.edges.len());
+
         let f = File::create("dynpdg.json")?;
         let writer = BufWriter::new(f);
-        serde_json::to_writer_pretty(writer, &all_nodes[all_nodes.len()-1])?;
+        serde_json::to_writer_pretty(writer, &converted_pdg)?;
 
         Ok(())
     }
@@ -356,7 +355,6 @@ impl VcdReader {
         if last_time == self.current_time {
             self.current_time += 1;
         }
-
 
         Ok((changes, eof_reached))
     }

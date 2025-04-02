@@ -10,6 +10,12 @@ pub struct PDGSpec {
     pub cfg: Vec<CFGSpecStatement>
 }
 
+impl PDGSpec {
+    pub fn empty() -> Self {
+        PDGSpec { vertices: vec![], edges: vec![], predicates: vec![], cfg: vec![] }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, Hash, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct PDGSpecNode {
@@ -18,6 +24,7 @@ pub struct PDGSpecNode {
     pub char: u32,
     pub name: String,
     pub kind: PDGSpecNodeKind,
+    pub clocked: bool,
     pub assigns_to: Option<String>,
     pub condition: Option<PDGSpecCondition>
 }
