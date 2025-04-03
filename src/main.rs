@@ -1,15 +1,18 @@
-use std::{fs::{read_to_string, File}, io::{BufReader, BufWriter}};
+use std::{fs::{read_to_string, File}, io::{BufReader, BufWriter}, path::Path};
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use graphbuilder::GraphBuilder;
 use pdg_spec::PDGSpec;
 use errors::Error;
+use sim_data_injection::TywavesInterface;
+use tywaves_rs::tyvcd::trace_pointer::TraceGetter;
 
 mod pdg_spec;
 mod conversion;
 mod slicing;
 mod errors;
 mod graphbuilder;
+mod sim_data_injection;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -71,6 +74,14 @@ fn main() -> Result<()> {
 
             let mut builder = GraphBuilder::new(vcd_path, sliced)?;
             builder.process()?;
+
+            let tywaves = TywavesInterface::new(&Path::new("./resources/hgldd"),
+                vec!["TOP".into(), "svsimTestbench".into()], &"RegFileTester".into())?;
+            
+            tywaves.vcd_rewrite(&Path::new("./resources/trace.vcd"))?;
+            let signal = tywaves.find_signal(&["TOP".into(), "svsimTestbench".into(), "regfile".into(), "io".into()])?;
+            println!("Translated variable: {:#?}", tywaves.translate_variable(&signal, &"0".repeat(69))?);
+            // println!("{:#?}", signal.create_val_repr(raw_val_vcd, render_fn));
         }
     }
 

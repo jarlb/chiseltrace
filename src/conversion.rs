@@ -13,7 +13,12 @@ pub fn pdg_convert_to_source(pdg: ExportablePDG) -> ExportablePDG {
     // First step is to make groups of vertices.
     let mut grouped_nodes: HashMap<(String, u32, u64), Vec<(ExportablePDGNode, usize)>> = HashMap::new();
     for (i, node) in pdg.vertices.iter().enumerate() {
-        grouped_nodes.entry((node.file.clone(), node.line, node.timestamp)).or_default().push((node.clone(), i));
+        // This correction is needed to counteract the correction in the graphbuilder.
+        // Basically, registers update, then the wires update. That means that a register update at t=x 
+        // cannot have wire dependencies at t=x, they must be earlier. Therefore, a correction was introduced.
+        // However, due to this correction, grouping was no longer working properly, so here we are.
+        let group_timestamp = if node.clocked { node.timestamp } else { node.timestamp + 1 };
+        grouped_nodes.entry((node.file.clone(), node.line, group_timestamp)).or_default().push((node.clone(), i));
     }
 
     // Redirect all Index edges. The probes will be removed in the next step

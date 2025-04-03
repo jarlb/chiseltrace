@@ -86,7 +86,11 @@ impl GraphBuilder {
             let mut new_nodes = vec![];
             for stmt in &activated_statements {
                 let node = self.linked_nodes[*stmt as usize].borrow();
-                let dpdg_node = Rc::new(RefCell::new(DynPDGNode {inner: node.inner.clone(), timestamp: self.reader.current_time, dependencies: vec![]}));
+                // Without this fix, we get a situation where registers of timestamp x can depend on wires from timestamp x, which is clearly
+                // incorrect if you operate under the assumption that on each rising edge, the registers update, THEN the wires that depend on those
+                // update
+                let node_timestamp = if node.inner.clocked { self.reader.current_time } else { self.reader.current_time - 1 };
+                let dpdg_node = Rc::new(RefCell::new(DynPDGNode {inner: node.inner.clone(), timestamp: node_timestamp, dependencies: vec![]}));
                 new_nodes.push((self.linked_nodes[*stmt as usize].clone(), dpdg_node.clone()));
 
                 let conditions_satisfied = if let Some(conds) = &node.inner.condition {
@@ -318,6 +322,8 @@ impl VcdReader {
             match command {
                 Command::Timestamp(t) => {
                     // println!("Timestamp: {t}");
+                    // The events that are recorded at the same step as a rising edge take place *after* the clock edge.
+                    // Therefore, they should be processed at the next time step.
                     if rising_edge_found {
                         self.current_time += 1;
                         eof_reached = false;
