@@ -1,9 +1,9 @@
-use std::{cell::RefCell, collections::HashMap, fs::File, io::{self, BufReader, BufWriter}, path::Path, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, fs::File, io::{self, BufReader}, path::Path, rc::Rc};
 use serde::Serialize;
 use vcd::{Command as Command, IdCode};
 use anyhow::Result;
 
-use crate::{conversion::dpdg_make_exportable, pdg_spec::{ExportablePDG, PDGSpec, PDGSpecEdge, PDGSpecEdgeKind, PDGSpecNode, PDGSpecNodeKind}, Error};
+use crate::{conversion::dpdg_make_exportable, pdg_spec::{ExportablePDG, PDGSpec, PDGSpecEdge, PDGSpecEdgeKind, PDGSpecNode, PDGSpecNodeKind}, errors::Error};
 
 pub struct GraphBuilder {
     reader: VcdReader,
@@ -19,7 +19,7 @@ struct VcdReader {
     parser: vcd::Parser<io::BufReader<File>>,
     header: vcd::Header,
     clock: vcd::IdCode,
-    reset: vcd::IdCode,
+    _reset: vcd::IdCode,
     current_time: u64,
     clock_val: vcd::Value,
     changes_buffer: Vec<ValueChange>,
@@ -196,6 +196,8 @@ impl GraphBuilder {
         // println!("Full graph: {:#?}", all_nodes[all_nodes.len()-1]);
         println!("Amount of nodes: {}", all_nodes.len());
 
+        // TODO: search for the correct node to export! It might not be at the end.
+
         Ok(dpdg_make_exportable(all_nodes[all_nodes.len()-1].clone()))
     }
 
@@ -230,32 +232,13 @@ impl GraphBuilder {
                     if let Some(t_branch) = node.true_branch {
                         stack.extend(t_branch.into_iter().rev());
                     }
-                } else {
-                    if let Some(f_branch) = node.false_branch {
-                        stack.extend(f_branch.into_iter().rev());
-                    }
+                } else if let Some(f_branch) = node.false_branch {
+                    stack.extend(f_branch.into_iter().rev());
                 }
             }
         }
 
         activated
-    }
-
-    pub fn read_init(&mut self) -> Result<()> {
-        println!("{:#?}", self.reader.read_cycle_changes()?.0);
-        Ok(())
-    }
-
-    pub fn read_rest(&mut self) -> Result<()> {
-        let mut eof_reached = false;
-        while !eof_reached {
-            println!("Timestep: {:?}", self.reader.current_time);
-            let (c, eof) = self.reader.read_cycle_changes()?;
-            println!("{:#?}", c);
-            eof_reached = eof;
-        }   
-
-        Ok(())
     }
 }
 
@@ -267,11 +250,11 @@ impl VcdReader {
         let header = parser.parse_header()?;
         // println!("{:#?}", header);
         let clock = header.find_var(&["TOP", "svsimTestbench", "clock"]).ok_or(Error::ClockNotFoundError)?.code;
-        let reset = header.find_var(&["TOP", "svsimTestbench", "reset"]).ok_or(Error::ClockNotFoundError)?.code;
+        let _reset = header.find_var(&["TOP", "svsimTestbench", "reset"]).ok_or(Error::ClockNotFoundError)?.code;
 
         let probes = Self::find_probes(&header);
         
-        Ok(VcdReader { parser, header, clock, reset, current_time: 0, clock_val: vcd::Value::X, changes_buffer: vec![], probes, probe_values: HashMap::new(), probe_change_buffer: vec![] })
+        Ok(VcdReader { parser, header, clock, _reset, current_time: 0, clock_val: vcd::Value::X, changes_buffer: vec![], probes, probe_values: HashMap::new(), probe_change_buffer: vec![] })
     }
 
     fn find_probes(header: &vcd::Header) -> HashMap<IdCode, Vec<String>> {
@@ -310,10 +293,10 @@ impl VcdReader {
         let mut rising_edge_found = false;
         let mut eof_reached = true;
         let last_time = self.current_time;
-        while let Some(command) = self.parser.next() {
+        for command in self.parser.by_ref() {
             let command = command?;
             match command {
-                Command::Timestamp(t) => {
+                Command::Timestamp(_t) => {
                     // println!("Timestamp: {t}");
                     // The events that are recorded at the same step as a rising edge take place *after* the clock edge.
                     // Therefore, they should be processed at the next time step.

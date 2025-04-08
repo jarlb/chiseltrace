@@ -11,7 +11,7 @@ pub struct PDGSpec {
 }
 
 impl PDGSpec {
-    pub fn empty() -> Self {
+    pub fn _empty() -> Self {
         PDGSpec { vertices: vec![], edges: vec![], predicates: vec![], cfg: vec![] }
     }
 }

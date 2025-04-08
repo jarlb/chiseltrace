@@ -61,10 +61,10 @@ fn create_translation_result_name(variable: &Variable) -> String {
 impl TywavesInterface {
     pub fn new(hgldd_dir: &Path, extra_scopes: Vec<String>, top_module: &String) -> Result<Self> {
         let hgldd = hgldd::reader::parse_hgldd_dir(hgldd_dir)
-            .map_err(|e| Error::from(e))?;
+            .map_err(Error::from)?;
         let mut builder = TyVcdBuilder::init(hgldd)
             .with_extra_artifact_scopes(extra_scopes, top_module);
-        let _res_build = builder.build().map_err(|e| Error::from(e))?;
+        builder.build().map_err(Error::from)?;
         Ok(Self { builder, top_module: top_module.clone() })
     }
 
@@ -72,7 +72,7 @@ impl TywavesInterface {
         let tywaves_scopes = &self.builder.get_ref().unwrap().scopes;
         // Get the list of scopes
         let scopes_def_list = tywaves_scopes
-            .into_iter()
+            .iter()
             .map(|(_, v)| (v.read().unwrap().clone()))
             .collect();
 
@@ -81,11 +81,11 @@ impl TywavesInterface {
             scopes_def_list,
             format!("{}.vcd", self.top_module),
         )
-        .map_err(|e| Error::from(e))?;
+        .map_err(Error::from)?;
         
         vcd_rewriter
             .rewrite()
-            .map_err(|e| Error::from(e))?;
+            .map_err(Error::from)?;
         Ok(vcd_rewriter.get_final_file().clone())
     }
 
@@ -149,7 +149,7 @@ impl TywavesInterface {
         raw_val_vcd: &str,
     ) -> Result<TranslationResult> {
         // Create the value representation
-        let render_fn = |num_bits: u64, raw_val_vcd: &str| {
+        let render_fn = |_num_bits: u64, raw_val_vcd: &str| {
             raw_val_vcd.to_string()
         };
 
@@ -246,7 +246,7 @@ impl TywavesInterface {
 
         let mut node_map: HashMap<u64, Vec<&mut ExportablePDGNode>> = HashMap::new();
         for node in &mut pdg.vertices {
-            node_map.entry(node.timestamp).or_insert_with(||  Vec::new()).push(node);
+            node_map.entry(node.timestamp).or_default().push(node);
         }
 
         let top_path: Vec<String> = vec!["TOP".into(), "svsimTestbench".into(), "dut".into()];
@@ -261,7 +261,7 @@ impl TywavesInterface {
         let mut current_timestamp = 0;
         let mut clock_val = vcd::Value::V0;
         let mut cycle_changes: HashMap<IdCode, vcd::Vector> = HashMap::new();
-        while let Some(command) = parser.next() {
+        for command in parser {
             let command = command?;
             match command {
                 Command::Timestamp(t) => {
@@ -282,7 +282,7 @@ impl TywavesInterface {
                                     let ty_var = self.find_signal(&hier_path).ok();
                                     // println!("{:#?}", ty_var);
                                     if let (Some(value), Some(tywaves_signal)) = (values_cache.get(&related_signal.signal_path), ty_var)  {
-                                        let translated_var = self.translate_variable(&tywaves_signal, &value)?;
+                                        let translated_var = self.translate_variable(&tywaves_signal, value)?;
                                         node.sim_data = find_ground_field(&translated_var, &related_signal.field_path);
                                     }
                                 }

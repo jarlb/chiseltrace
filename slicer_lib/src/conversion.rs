@@ -38,11 +38,9 @@ pub fn pdg_convert_to_source(pdg: ExportablePDG) -> ExportablePDG {
             }
             // println!("{:#?}", replacement_edges);
             replacement_edges
-        } else {
-            if !pdg.vertices[e.from as usize].name.starts_with("defnode_probe") { // Should definitely be replaced in the future
-                vec![e.clone()]
-            } else { vec![] }
-        }
+        } else if !pdg.vertices[e.from as usize].name.starts_with("defnode_probe") { // Should definitely be replaced in the future
+            vec![e.clone()]
+        } else { vec![] }
     }).collect::<Vec<_>>();
 
     // println!("{:#?}", new_edges);
@@ -70,7 +68,7 @@ pub fn pdg_convert_to_source(pdg: ExportablePDG) -> ExportablePDG {
                     current_group.push((visited_node, visited_idx));
                 }
             }
-            if current_group.len() > 0 {
+            if !current_group.is_empty() {
                 groups.push(current_group);
             }
         }
@@ -166,7 +164,7 @@ pub fn pdg_convert_to_source(pdg: ExportablePDG) -> ExportablePDG {
         ExportablePDGNode {name: node_name, kind: vert_kind, ..v0.clone()}
     }).collect::<Vec<_>>();
 
-    let merged_edges = outgoing_edges.chain(self_dependencies).into_iter()
+    let merged_edges = outgoing_edges.chain(self_dependencies)
     .map(|e| {
         // Some edges may be unjustly marked as non-clocked. We need to restore them
         ExportablePDGEdge { clocked: new_verts[e.from as usize].clocked, ..e }
@@ -216,7 +214,7 @@ pub fn dpdg_make_exportable(root: Rc<RefCell<DynPDGNode>>) -> ExportablePDG {
     }).collect::<Vec<_>>();
 
     pdg.vertices = pdg_verts;
-    pdg.edges = edges.into_iter().collect::<Vec<_>>().into();
+    pdg.edges = edges.into_iter().collect::<Vec<_>>();
 
     pdg
 }
