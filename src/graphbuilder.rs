@@ -3,7 +3,7 @@ use serde::Serialize;
 use vcd::{Command as Command, IdCode};
 use anyhow::Result;
 
-use crate::{conversion::{dpdg_make_exportable, pdg_convert_to_source}, pdg_spec::{PDGSpec, PDGSpecEdge, PDGSpecEdgeKind, PDGSpecNode, PDGSpecNodeKind}, Error};
+use crate::{conversion::dpdg_make_exportable, pdg_spec::{ExportablePDG, PDGSpec, PDGSpecEdge, PDGSpecEdgeKind, PDGSpecNode, PDGSpecNodeKind}, Error};
 
 pub struct GraphBuilder {
     reader: VcdReader,
@@ -72,13 +72,14 @@ impl GraphBuilder {
         Ok(GraphBuilder { reader: vcd_reader, pdg, linked_nodes: linked, pred_values: HashMap::new(), pred_idx_to_id: vec![], dependency_state: HashMap::new() })
     }
 
-    pub fn process(&mut self) -> Result<()> {
+    pub fn process(&mut self) -> Result<ExportablePDG> {
         self.init_predicates()?;
 
         let mut eof_reached = false;
         let mut all_nodes = vec![];
         while !eof_reached {
             let (c, eof) = self.reader.read_cycle_changes()?;
+            let corrected_timestamp = self.reader.current_time - 1; // Time starts at zero
             eof_reached = eof;
             let activated_statements = self.get_activated_statements(&c);
             let mut new_reg_providers: HashMap<String, Rc<RefCell<DynPDGNode>>> = HashMap::new();
@@ -89,7 +90,7 @@ impl GraphBuilder {
                 // Without this fix, we get a situation where registers of timestamp x can depend on wires from timestamp x, which is clearly
                 // incorrect if you operate under the assumption that on each rising edge, the registers update, THEN the wires that depend on those
                 // update
-                let node_timestamp = if node.inner.clocked { self.reader.current_time } else { self.reader.current_time - 1 };
+                let node_timestamp = if node.inner.clocked { corrected_timestamp } else { corrected_timestamp.saturating_sub(1) };
                 let dpdg_node = Rc::new(RefCell::new(DynPDGNode {inner: node.inner.clone(), timestamp: node_timestamp, dependencies: vec![]}));
                 new_nodes.push((self.linked_nodes[*stmt as usize].clone(), dpdg_node.clone()));
 
@@ -113,7 +114,7 @@ impl GraphBuilder {
                             if node.inner.kind == PDGSpecNodeKind::DataDefinition {
                                 println!("Register init found");
                                 // Handle register resets.
-                                if self.reader.current_time == 1 {
+                                if corrected_timestamp == 0 {
                                     println!("Register with reset: {:?}", node.inner.name);
                                     self.dependency_state.insert(symb.clone(), dpdg_node.clone());
                                 }
@@ -186,7 +187,7 @@ impl GraphBuilder {
             for (k,v) in new_reg_providers {
                 self.dependency_state.insert(k, v);
             }
-            println!("{}", self.reader.current_time);
+            println!("{}", corrected_timestamp);
             println!("Activated nodes: {:?}", activated_statements);
 
             // println!("{:#?}", self.reader.probe_values);
@@ -195,15 +196,7 @@ impl GraphBuilder {
         // println!("Full graph: {:#?}", all_nodes[all_nodes.len()-1]);
         println!("Amount of nodes: {}", all_nodes.len());
 
-        let converted_pdg = pdg_convert_to_source(dpdg_make_exportable(all_nodes[all_nodes.len()-1].clone()));
-
-        println!("Num verts: {}, num edges: {}", converted_pdg.vertices.len(), converted_pdg.edges.len());
-
-        let f = File::create("dynpdg.json")?;
-        let writer = BufWriter::new(f);
-        serde_json::to_writer_pretty(writer, &converted_pdg)?;
-
-        Ok(())
+        Ok(dpdg_make_exportable(all_nodes[all_nodes.len()-1].clone()))
     }
 
     fn init_predicates(&mut self) -> Result<()> {

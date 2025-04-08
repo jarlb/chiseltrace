@@ -25,6 +25,7 @@ pub struct PDGSpecNode {
     pub name: String,
     pub kind: PDGSpecNodeKind,
     pub clocked: bool,
+    pub related_signal: Option<PDGSpecRelatedSignal>,
     pub assigns_to: Option<String>,
     pub is_chisel_statement: bool,
     pub condition: Option<PDGSpecCondition>
@@ -37,6 +38,13 @@ pub enum PDGSpecNodeKind {
     IO,
     Connection,
     ControlFlow,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Hash, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct PDGSpecRelatedSignal {
+    pub signal_path: String,
+    pub field_path: String
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
@@ -119,13 +127,18 @@ pub struct ExportablePDGNode {
     pub name: String,
     pub kind: PDGSpecNodeKind,
     pub clocked: bool,
+    pub related_signal: Option<PDGSpecRelatedSignal>,
+    pub sim_data: Option<String>,
     pub timestamp: u64,
     pub is_chisel_assignment: bool
 }
 
 impl From<PDGSpecNode> for ExportablePDGNode {
     fn from(value: PDGSpecNode) -> Self {
-        ExportablePDGNode { file: value.file, line: value.line, char: value.char, name: value.name, kind: value.kind, clocked: value.clocked, is_chisel_assignment: value.is_chisel_statement, timestamp: 0 }
+        ExportablePDGNode { file: value.file, line: value.line, char: value.char, name: value.name, kind: value.kind,
+            clocked: value.clocked, related_signal: value.related_signal, sim_data: None,
+            is_chisel_assignment: value.is_chisel_statement, timestamp: 0
+        }
     }
 }
 

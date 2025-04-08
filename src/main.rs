@@ -1,6 +1,7 @@
 use std::{fs::{read_to_string, File}, io::{BufReader, BufWriter}, path::Path};
 use anyhow::Result;
 use clap::{Parser, Subcommand};
+use conversion::pdg_convert_to_source;
 use graphbuilder::GraphBuilder;
 use pdg_spec::PDGSpec;
 use errors::Error;
@@ -73,14 +74,24 @@ fn main() -> Result<()> {
             slicing::write_pdg(&sliced, "out_pdg.json")?;
 
             let mut builder = GraphBuilder::new(vcd_path, sliced)?;
-            builder.process()?;
+            let dpdg = builder.process()?;
+
+            let mut converted_pdg = pdg_convert_to_source(dpdg);
 
             let tywaves = TywavesInterface::new(&Path::new("./resources/hgldd"),
-                vec!["TOP".into(), "svsimTestbench".into()], &"RegFileTester".into())?;
+                vec!["TOP".into(), "svsimTestbench".into(), "dut".into()], &"RegFileTester".into())?;
             
-            tywaves.vcd_rewrite(&Path::new("./resources/trace.vcd"))?;
-            let signal = tywaves.find_signal(&["TOP".into(), "svsimTestbench".into(), "regfile".into(), "io".into()])?;
-            println!("Translated variable: {:#?}", tywaves.translate_variable(&signal, &"0".repeat(69))?);
+            let tywaves_vcd_path = tywaves.vcd_rewrite(&Path::new("./resources/trace.vcd"))?;
+            tywaves.inject_sim_data(&mut converted_pdg, &tywaves_vcd_path)?;
+            // let signal = tywaves.find_signal(&["TOP".into(), "svsimTestbench".into(), "dut".into(), "regfile".into(), "pred_io_w_en".into()])?;
+            // println!("Translated variable: {:#?}", tywaves.translate_variable(&signal, &"0".repeat(1))?);
+
+            println!("Num verts: {}, num edges: {}", converted_pdg.vertices.len(), converted_pdg.edges.len());
+    
+            let f = File::create("dynpdg.json")?;
+            let writer = BufWriter::new(f);
+            serde_json::to_writer_pretty(writer, &converted_pdg)?;
+
             // println!("{:#?}", signal.create_val_repr(raw_val_vcd, render_fn));
         }
     }

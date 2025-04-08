@@ -7,6 +7,10 @@
       "name": "input_io.en",
       "kind": "IO",
       "clocked": false,
+      "relatedSignal": {
+        "signalPath": "io",
+        "fieldPath": "en"
+      },
       "assignsTo": "io.en",
       "isChiselStatement": true,
       "condition": null
@@ -18,6 +22,7 @@
       "name": "output_io.res",
       "kind": "IO",
       "clocked": false,
+      "relatedSignal": null,
       "assignsTo": null,
       "isChiselStatement": true,
       "condition": null
@@ -29,6 +34,7 @@
       "name": "defwire__registers_WIRE.0",
       "kind": "Definition",
       "clocked": false,
+      "relatedSignal": null,
       "assignsTo": null,
       "isChiselStatement": false,
       "condition": null
@@ -40,6 +46,7 @@
       "name": "defwire__registers_WIRE.1",
       "kind": "Definition",
       "clocked": false,
+      "relatedSignal": null,
       "assignsTo": null,
       "isChiselStatement": false,
       "condition": null
@@ -51,6 +58,7 @@
       "name": "defwire__registers_WIRE.2",
       "kind": "Definition",
       "clocked": false,
+      "relatedSignal": null,
       "assignsTo": null,
       "isChiselStatement": false,
       "condition": null
@@ -62,6 +70,7 @@
       "name": "defwire__registers_WIRE.3",
       "kind": "Definition",
       "clocked": false,
+      "relatedSignal": null,
       "assignsTo": null,
       "isChiselStatement": false,
       "condition": null
@@ -73,6 +82,7 @@
       "name": "connect__registers_WIRE.0",
       "kind": "Connection",
       "clocked": false,
+      "relatedSignal": null,
       "assignsTo": "regfile._registers_WIRE.0",
       "isChiselStatement": false,
       "condition": null
@@ -84,6 +94,7 @@
       "name": "connect__registers_WIRE.1",
       "kind": "Connection",
       "clocked": false,
+      "relatedSignal": null,
       "assignsTo": "regfile._registers_WIRE.1",
       "isChiselStatement": false,
       "condition": null
@@ -95,6 +106,7 @@
       "name": "connect__registers_WIRE.2",
       "kind": "Connection",
       "clocked": false,
+      "relatedSignal": null,
       "assignsTo": "regfile._registers_WIRE.2",
       "isChiselStatement": false,
       "condition": null
@@ -106,6 +118,7 @@
       "name": "connect__registers_WIRE.3",
       "kind": "Connection",
       "clocked": false,
+      "relatedSignal": null,
       "assignsTo": "regfile._registers_WIRE.3",
       "isChiselStatement": false,
       "condition": null
@@ -117,6 +130,10 @@
       "name": "defreg_registers.0",
       "kind": "DataDefinition",
       "clocked": true,
+      "relatedSignal": {
+        "signalPath": "regfile.registers",
+        "fieldPath": "0"
+      },
       "assignsTo": "regfile.registers.0",
       "isChiselStatement": true,
       "condition": null
@@ -128,6 +145,10 @@
       "name": "defreg_registers.1",
       "kind": "DataDefinition",
       "clocked": true,
+      "relatedSignal": {
+        "signalPath": "regfile.registers",
+        "fieldPath": "1"
+      },
       "assignsTo": "regfile.registers.1",
       "isChiselStatement": true,
       "condition": null
@@ -139,6 +160,10 @@
       "name": "defreg_registers.2",
       "kind": "DataDefinition",
       "clocked": true,
+      "relatedSignal": {
+        "signalPath": "regfile.registers",
+        "fieldPath": "2"
+      },
       "assignsTo": "regfile.registers.2",
       "isChiselStatement": true,
       "condition": null
@@ -150,6 +175,10 @@
       "name": "defreg_registers.3",
       "kind": "DataDefinition",
       "clocked": true,
+      "relatedSignal": {
+        "signalPath": "regfile.registers",
+        "fieldPath": "3"
+      },
       "assignsTo": "regfile.registers.3",
       "isChiselStatement": true,
       "condition": null
@@ -161,6 +190,10 @@
       "name": "cond_on_[io.w_en]",
       "kind": "ControlFlow",
       "clocked": false,
+      "relatedSignal": {
+        "signalPath": "regfile.pred_io_w_en",
+        "fieldPath": ""
+      },
       "assignsTo": null,
       "isChiselStatement": true,
       "condition": null
@@ -172,6 +205,10 @@
       "name": "defnode_probe_XtoiZAfAAwiuhrYBJpIt",
       "kind": "DataDefinition",
       "clocked": false,
+      "relatedSignal": {
+        "signalPath": "regfile.probe_XtoiZAfAAwiuhrYBJpIt",
+        "fieldPath": ""
+      },
       "assignsTo": "regfile.probe_XtoiZAfAAwiuhrYBJpIt",
       "isChiselStatement": true,
       "condition": null
@@ -183,6 +220,10 @@
       "name": "connect_registers.0",
       "kind": "Connection",
       "clocked": true,
+      "relatedSignal": {
+        "signalPath": "regfile.registers",
+        "fieldPath": "0"
+      },
       "assignsTo": "regfile.registers.0",
       "isChiselStatement": true,
       "condition": {
@@ -201,6 +242,10 @@
       "name": "connect_registers.1",
       "kind": "Connection",
       "clocked": true,
+      "relatedSignal": {
+        "signalPath": "regfile.registers",
+        "fieldPath": "1"
+      },
       "assignsTo": "regfile.registers.1",
       "isChiselStatement": true,
       "condition": {
@@ -219,6 +264,10 @@
       "name": "connect_registers.2",
       "kind": "Connection",
       "clocked": true,
+      "relatedSignal": {
+        "signalPath": "regfile.registers",
+        "fieldPath": "2"
+      },
       "assignsTo": "regfile.registers.2",
       "isChiselStatement": true,
       "condition": {
@@ -237,6 +286,10 @@
       "name": "connect_registers.3",
       "kind": "Connection",
       "clocked": true,
+      "relatedSignal": {
+        "signalPath": "regfile.registers",
+        "fieldPath": "3"
+      },
       "assignsTo": "regfile.registers.3",
       "isChiselStatement": true,
       "condition": {
@@ -255,6 +308,10 @@
       "name": "defnode_probe_BVwQJPGjsMFtphCfLLpF",
       "kind": "DataDefinition",
       "clocked": false,
+      "relatedSignal": {
+        "signalPath": "regfile.probe_BVwQJPGjsMFtphCfLLpF",
+        "fieldPath": ""
+      },
       "assignsTo": "regfile.probe_BVwQJPGjsMFtphCfLLpF",
       "isChiselStatement": true,
       "condition": null
@@ -266,6 +323,10 @@
       "name": "connect_io.r_data",
       "kind": "Connection",
       "clocked": false,
+      "relatedSignal": {
+        "signalPath": "regfile.io",
+        "fieldPath": "r_data"
+      },
       "assignsTo": "regfile.io.r_data",
       "isChiselStatement": true,
       "condition": null
@@ -277,6 +338,10 @@
       "name": "defreg_counter",
       "kind": "DataDefinition",
       "clocked": true,
+      "relatedSignal": {
+        "signalPath": "counter",
+        "fieldPath": ""
+      },
       "assignsTo": "counter",
       "isChiselStatement": true,
       "condition": null
@@ -288,6 +353,10 @@
       "name": "cond_on_[io.en]",
       "kind": "ControlFlow",
       "clocked": false,
+      "relatedSignal": {
+        "signalPath": "pred_io_en",
+        "fieldPath": ""
+      },
       "assignsTo": null,
       "isChiselStatement": true,
       "condition": null
@@ -299,6 +368,7 @@
       "name": "defnode__counter_T",
       "kind": "DataDefinition",
       "clocked": false,
+      "relatedSignal": null,
       "assignsTo": "_counter_T",
       "isChiselStatement": false,
       "condition": null
@@ -310,6 +380,7 @@
       "name": "defnode__counter_T_1",
       "kind": "DataDefinition",
       "clocked": false,
+      "relatedSignal": null,
       "assignsTo": "_counter_T_1",
       "isChiselStatement": false,
       "condition": null
@@ -321,6 +392,10 @@
       "name": "connect_counter",
       "kind": "Connection",
       "clocked": true,
+      "relatedSignal": {
+        "signalPath": "counter",
+        "fieldPath": ""
+      },
       "assignsTo": "counter",
       "isChiselStatement": true,
       "condition": null
@@ -332,6 +407,10 @@
       "name": "connect_regfile.io.r_addr",
       "kind": "Connection",
       "clocked": false,
+      "relatedSignal": {
+        "signalPath": "regfile.io",
+        "fieldPath": "r_addr"
+      },
       "assignsTo": "regfile.io.r_addr",
       "isChiselStatement": true,
       "condition": null
@@ -343,6 +422,10 @@
       "name": "connect_regfile.io.w_addr",
       "kind": "Connection",
       "clocked": false,
+      "relatedSignal": {
+        "signalPath": "regfile.io",
+        "fieldPath": "w_addr"
+      },
       "assignsTo": "regfile.io.w_addr",
       "isChiselStatement": true,
       "condition": null
@@ -354,6 +437,10 @@
       "name": "connect_regfile.io.w_en",
       "kind": "Connection",
       "clocked": false,
+      "relatedSignal": {
+        "signalPath": "regfile.io",
+        "fieldPath": "w_en"
+      },
       "assignsTo": "regfile.io.w_en",
       "isChiselStatement": true,
       "condition": null
@@ -365,6 +452,7 @@
       "name": "defnode__regfile_io_w_data_T",
       "kind": "DataDefinition",
       "clocked": false,
+      "relatedSignal": null,
       "assignsTo": "_regfile_io_w_data_T",
       "isChiselStatement": false,
       "condition": null
@@ -376,6 +464,7 @@
       "name": "defnode__regfile_io_w_data_T_1",
       "kind": "DataDefinition",
       "clocked": false,
+      "relatedSignal": null,
       "assignsTo": "_regfile_io_w_data_T_1",
       "isChiselStatement": false,
       "condition": null
@@ -387,6 +476,10 @@
       "name": "connect_regfile.io.w_data",
       "kind": "Connection",
       "clocked": false,
+      "relatedSignal": {
+        "signalPath": "regfile.io",
+        "fieldPath": "w_data"
+      },
       "assignsTo": "regfile.io.w_data",
       "isChiselStatement": true,
       "condition": null
@@ -398,6 +491,10 @@
       "name": "connect_io.res",
       "kind": "Connection",
       "clocked": false,
+      "relatedSignal": {
+        "signalPath": "io",
+        "fieldPath": "res"
+      },
       "assignsTo": "io.res",
       "isChiselStatement": true,
       "condition": null
@@ -931,6 +1028,7 @@
       "name": "regfile.pred_io_w_en",
       "kind": "DataDefinition",
       "clocked": false,
+      "relatedSignal": null,
       "assignsTo": null,
       "isChiselStatement": false,
       "condition": null
@@ -942,6 +1040,7 @@
       "name": "pred_io_en",
       "kind": "DataDefinition",
       "clocked": false,
+      "relatedSignal": null,
       "assignsTo": null,
       "isChiselStatement": false,
       "condition": null
