@@ -1,5 +1,6 @@
 [workspace]
 members = [
     "slicer_lib",
-    "cli"
+    "cli",
+    "gui/src-tauri"
 ]
