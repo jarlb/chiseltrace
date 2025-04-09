@@ -12,6 +12,7 @@ mod errors;
 mod graph_building;
 mod app_state;
 mod graph_interaction;
+mod translation;
 
 #[tauri::command]
 fn get_initial_route() -> String {

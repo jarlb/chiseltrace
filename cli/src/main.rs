@@ -54,7 +54,7 @@ fn main() -> Result<()> {
             write_pdg(&sliced, "out_pdg.json")?;
         },
         Commands::Convert {..} => {
-            let converted = pdg_convert_to_source(pdg_raw.into());
+            let converted = pdg_convert_to_source(pdg_raw.into(), true);
             let output_file = File::create("out_chisel_pdg.json")?;
             let writer = BufWriter::new(output_file);
         
@@ -67,7 +67,7 @@ fn main() -> Result<()> {
             let mut builder = GraphBuilder::new(vcd_path, vec!["TOP".into(), "svsimTestbench".into(), "dut".into()], sliced)?;
             let dpdg = builder.process()?;
 
-            let mut converted_pdg = pdg_convert_to_source(dpdg);
+            let mut converted_pdg = pdg_convert_to_source(dpdg, true);
 
             let tywaves = TywavesInterface::new(Path::new("../resources/hgldd"),
                 vec!["TOP".into(), "svsimTestbench".into(), "dut".into()], &"RegFileTester".into())?;

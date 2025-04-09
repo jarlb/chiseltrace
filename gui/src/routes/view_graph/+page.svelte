@@ -22,6 +22,7 @@
   interface CustomNode extends Node {
     group: string;
     timestamp: number;
+    longDistance: boolean;
   }
 
   interface ViewerGraph {
@@ -87,13 +88,18 @@
   }
 
   // Turn off the physics for all nodes in view.
-  function freezeAllNodes() {    
-    const updates = nodes.getIds().map(id => ({
-      id,
-      physics: false
-    }));
-    
+  function freezeAllNodes() {
+    const updates = nodes.getIds().map(id => {
+      const node = nodes.get(id) as CustomNode;
+      return {
+        id,
+        physics: false,
+        color: node.color
+      };
+    });
+  
     nodes.update(updates);
+    network.redraw(); // Force immediate render
   }
 
   onMount(() => {
@@ -131,12 +137,20 @@
               nodeTimestamp.xPos + 50,
               Math.min(nodeTimestamp.xPos + nodeTimestamp.width - 50, currentPos.x)
             );
-            const constrainedY = Math.max(
-              // I tried doing it with a % of the networkContainer.clientHeight
-              // For some reason, it *really* doesn't like that and pegs the CPU at 100%
-              250, 
-              Math.min(networkContainer.clientHeight - 50, currentPos.y)
-            );
+            let constrainedY = 0;
+            if (node.longDistance) {
+              constrainedY = Math.max(
+                20, 
+                Math.min(200, currentPos.y)
+              );
+            } else {
+              constrainedY = Math.max(
+                // I tried doing it with a % of the networkContainer.clientHeight
+                // For some reason, it *really* doesn't like that and pegs the CPU at 100%
+                250, 
+                Math.min(networkContainer.clientHeight - 50, currentPos.y)
+              );
+            }
             if (Math.abs(currentPos.x - constrainedX) > 0.1 || Math.abs(currentPos.y - constrainedY) > 0.1) {
               network.moveNode(node.id!, constrainedX, constrainedY);
             }
@@ -207,11 +221,6 @@
         smooth: { enabled: true, type: 'continuous', roundness: 0.4 },
         arrows: { to: { scaleFactor: 0.6 } },
         color: { color: '#718096', highlight: '#4A5568' }
-      },
-      groups: {
-        t1: { color: { background: '#EBF8FF' } },
-        t2: { color: { background: '#EBF8FF' } },
-        t3: { color: { background: '#EBF8FF' } }
       }
     };
   }

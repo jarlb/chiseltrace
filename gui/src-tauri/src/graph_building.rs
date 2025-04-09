@@ -26,7 +26,7 @@ pub async fn make_dpdg(state: State<'_, RwLock<AppState>>) -> Result<(), String>
         let mut builder = GraphBuilder::new(&pdg_config.vcd_path, pdg_config.extra_scopes.clone(), sliced)?;
         let dpdg = builder.process()?;
 
-        let mut converted_pdg = pdg_convert_to_source(dpdg);
+        let mut converted_pdg = pdg_convert_to_source(dpdg, false);
 
         let tywaves = TywavesInterface::new(&pdg_config.hgldd_path, pdg_config.extra_scopes.clone(), &pdg_config.top_module)?;
     

@@ -2,7 +2,7 @@ use std::{cell::RefCell, collections::{BTreeMap, HashMap, HashSet}, rc::Rc};
 use itertools::Itertools;
 use crate::{graphbuilder::DynPDGNode, pdg_spec::{ExportablePDG, ExportablePDGEdge, ExportablePDGNode, PDGSpecEdgeKind, PDGSpecNodeKind}};
 
-pub fn pdg_convert_to_source(pdg: ExportablePDG) -> ExportablePDG {
+pub fn pdg_convert_to_source(pdg: ExportablePDG, verbose_name: bool) -> ExportablePDG {
     // Here, we convert the PDG from FIRRTL representation to source representation.
     // The only source information that is available is the source file and line mapping (TODO: ALSO CHECK THE CHARACTER INDEX!!)
     // Based on this, we can group nodes that belong to the same source statement. One issue is that
@@ -157,7 +157,11 @@ pub fn pdg_convert_to_source(pdg: ExportablePDG) -> ExportablePDG {
         let filename = v0.file.split("/").last().unwrap();
         let primary_statement = g.iter().find(|n| n.0.is_chisel_assignment);
         let node_name = if let Some((stmt, _)) = primary_statement {
-            format!("{} ({}:{})", stmt.name, filename, stmt.line)
+            if verbose_name {
+                format!("{} at t={} ({}:{})", stmt.name, stmt.timestamp, filename, stmt.line)
+            } else {
+                stmt.name.clone()
+            }
         } else {
             format!("{}:{}", filename , v0.line)
         };
@@ -210,7 +214,7 @@ pub fn dpdg_make_exportable(root: Rc<RefCell<DynPDGNode>>) -> ExportablePDG {
 
     let pdg_verts = scanned_nodes.iter().map(|el| {
         let node = el.borrow();
-        ExportablePDGNode { name: format!("{} at t={}", node.inner.name, node.timestamp), timestamp: node.timestamp, ..node.inner.clone().into()}
+        ExportablePDGNode { name: format!("{}", node.inner.name), timestamp: node.timestamp, ..node.inner.clone().into()}
     }).collect::<Vec<_>>();
 
     pdg.vertices = pdg_verts;
