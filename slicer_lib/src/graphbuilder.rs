@@ -17,6 +17,7 @@ pub struct GraphBuilder {
 
 struct VcdReader {
     parser: vcd::Parser<io::BufReader<File>>,
+    extra_scopes: Vec<String>,
     header: vcd::Header,
     clock: vcd::IdCode,
     _reset: vcd::IdCode,
@@ -49,8 +50,8 @@ pub struct DynPDGNode {
 }
 
 impl GraphBuilder {
-    pub fn new(vcd_path: impl AsRef<Path>, pdg: PDGSpec) -> Result<GraphBuilder> {
-        let vcd_reader = VcdReader::new(vcd_path)?;
+    pub fn new(vcd_path: impl AsRef<Path>, extra_scopes: Vec<String>, pdg: PDGSpec) -> Result<GraphBuilder> {
+        let vcd_reader = VcdReader::new(vcd_path, extra_scopes)?;
 
         // Link up the nodes for easier processing
         let linked = pdg.vertices.iter().map(|v| {
@@ -243,23 +244,29 @@ impl GraphBuilder {
 }
 
 impl VcdReader {
-    fn new(vcd_path: impl AsRef<Path>) -> Result<Self> {
+    fn new(vcd_path: impl AsRef<Path>, extra_scopes: Vec<String>) -> Result<Self> {
         let file = File::open(vcd_path)?;
         let reader = BufReader::new(file);
         let mut parser = vcd::Parser::new(reader);
         let header = parser.parse_header()?;
         // println!("{:#?}", header);
-        let clock = header.find_var(&["TOP", "svsimTestbench", "clock"]).ok_or(Error::ClockNotFoundError)?.code;
-        let _reset = header.find_var(&["TOP", "svsimTestbench", "reset"]).ok_or(Error::ClockNotFoundError)?.code;
+        let mut clock_path = extra_scopes.clone();
+        clock_path.push("clock".into());
 
-        let probes = Self::find_probes(&header);
+        let mut reset_path = extra_scopes.clone();
+        reset_path.push("reset".into());
+
+        let clock = header.find_var(&clock_path).ok_or(Error::ClockNotFoundError)?.code;
+        let _reset = header.find_var(&reset_path).ok_or(Error::ClockNotFoundError)?.code;
+
+        let probes = Self::find_probes(&header, &extra_scopes);
         
-        Ok(VcdReader { parser, header, clock, _reset, current_time: 0, clock_val: vcd::Value::X, changes_buffer: vec![], probes, probe_values: HashMap::new(), probe_change_buffer: vec![] })
+        Ok(VcdReader { parser, extra_scopes, header, clock, _reset, current_time: 0, clock_val: vcd::Value::X, changes_buffer: vec![], probes, probe_values: HashMap::new(), probe_change_buffer: vec![] })
     }
 
-    fn find_probes(header: &vcd::Header) -> HashMap<IdCode, Vec<String>> {
+    fn find_probes(header: &vcd::Header, root_scope: &[String]) -> HashMap<IdCode, Vec<String>> {
         let mut probes = HashMap::new();
-        if let Some(dut) = header.find_scope(&["TOP", "svsimTestbench", "dut"]) {
+        if let Some(dut) = header.find_scope(root_scope) {
             let mut stack = vec![];
             stack.extend_from_slice(&dut.items.iter().map(|i| ("".to_string(), i)).collect::<Vec<_>>());
             while let Some((prefix, item)) = stack.pop() {
@@ -283,7 +290,7 @@ impl VcdReader {
     }
 
     fn find_var(&self, hierarchy: impl AsRef<str>) -> Result<IdCode> {
-        let mut hier_path = vec!["TOP", "svsimTestbench", "dut"];
+        let mut hier_path = self.extra_scopes.iter().map(|s| s.as_str()).collect::<Vec<_>>();
         hier_path.extend(hierarchy.as_ref().split("."));
         Ok(self.header.find_var(&hier_path).ok_or(Error::VariableNotFoundError(hier_path.join(".")))?.code)
     }

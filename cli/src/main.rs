@@ -64,15 +64,15 @@ fn main() -> Result<()> {
             let sliced = pdg_slice(pdg_raw, slice_criterion)?;
             write_pdg(&sliced, "out_pdg.json")?;
 
-            let mut builder = GraphBuilder::new(vcd_path, sliced)?;
+            let mut builder = GraphBuilder::new(vcd_path, vec!["TOP".into(), "svsimTestbench".into(), "dut".into()], sliced)?;
             let dpdg = builder.process()?;
 
             let mut converted_pdg = pdg_convert_to_source(dpdg);
 
-            let tywaves = TywavesInterface::new(Path::new("./resources/hgldd"),
+            let tywaves = TywavesInterface::new(Path::new("../resources/hgldd"),
                 vec!["TOP".into(), "svsimTestbench".into(), "dut".into()], &"RegFileTester".into())?;
             
-            let tywaves_vcd_path = tywaves.vcd_rewrite(Path::new("./resources/trace.vcd"))?;
+            let tywaves_vcd_path = tywaves.vcd_rewrite(Path::new("../resources/trace.vcd"))?;
             tywaves.inject_sim_data(&mut converted_pdg, &tywaves_vcd_path)?;
             // let signal = tywaves.find_signal(&["TOP".into(), "svsimTestbench".into(), "dut".into(), "regfile".into(), "pred_io_w_en".into()])?;
             // println!("Translated variable: {:#?}", tywaves.translate_variable(&signal, &"0".repeat(1))?);

@@ -898,11 +898,15 @@ dependencies = [
 name = "dpdg_visualiser"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "clap",
+ "program_slicer_lib",
  "serde",
  "serde_json",
  "tauri",
  "tauri-build",
  "tauri-plugin-opener",
+ "thiserror 2.0.12",
 ]
 
 [[package]]

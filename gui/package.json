@@ -15,6 +15,7 @@
   "dependencies": {
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-opener": "^2",
+    "svelte-routing": "^2.13.0",
     "vis-data": "^7.1.9",
     "vis-network": "^9.1.9"
   },

@@ -13,6 +13,7 @@
     "windows": [
       {
         "title": "dpdg_visualiser",
+        "maximized": true,
         "width": 800,
         "height": 600
       }

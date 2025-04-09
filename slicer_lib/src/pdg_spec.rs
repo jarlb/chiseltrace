@@ -100,7 +100,7 @@ pub struct CFGSpecStatement {
 }
 
 /// A format of the PDG that allows for storage and export of additional information.
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ExportablePDG {
     pub vertices: Vec<ExportablePDGNode>,
     pub edges: Vec<ExportablePDGEdge>
@@ -119,7 +119,7 @@ impl From<PDGSpec> for ExportablePDG {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ExportablePDGNode {
     pub file: String,
     pub line: u32,
@@ -142,7 +142,7 @@ impl From<PDGSpecNode> for ExportablePDGNode {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 pub struct ExportablePDGEdge {
     pub from: u32,
     pub to: u32,
