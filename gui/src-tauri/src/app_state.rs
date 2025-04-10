@@ -28,5 +28,7 @@ pub struct ViewableGraph {
     pub dpdg: ExportablePDG,
     pub time_to_nodes: HashMap<u64, Vec<usize>>,
     pub dep_to_edges: HashMap<u32, Vec<usize>>,
-    pub n_timestamps: u64
+    pub prov_to_edges: HashMap<u32, Vec<usize>>,
+    pub n_timestamps: u64,
+    pub source_files: HashMap<String, Vec<String>>
 }

@@ -1,11 +1,12 @@
 use std::sync::RwLock;
 
 use anyhow::anyhow;
+use itertools::Itertools;
 use program_slicer_lib::pdg_spec::{PDGSpecEdgeKind, PDGSpecNodeKind};
 use serde::Serialize;
 use tauri::State;
 
-use crate::{app_state::AppState, errors::map_err_to_string, translation::{interpret_tywaves_value, TranslationStrategy}};
+use crate::{app_state::{AppState, ViewableGraph}, errors::map_err_to_string, translation::{interpret_tywaves_value, TranslationStrategy}};
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -23,8 +24,18 @@ struct ViewerNode {
     timestamp: u64,
     long_distance: bool,
     color: NodeColour,
-    shape: NodeShape
-    // To add in the future: colours, shapes, hover information, click actions, etc.
+    shape: NodeShape,
+    code: Option<String>,
+    incoming: Vec<ViewerSignal>,
+    outgoing: Vec<ViewerSignal>
+}
+
+#[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+struct ViewerSignal {
+    name: String,
+    value: String,
+    connection_type: String
 }
 
 #[derive(Debug)]
@@ -58,11 +69,11 @@ impl From<PDGSpecNodeKind> for NodeColour {
 impl NodeColour {
     fn to_hex(&self) -> String {
         match self {
-            &NodeColour::Blue => "#97C2FC".into(),
-            &NodeColour::Red => "#FB7E81".into(),
-            &NodeColour::Green => "#7BE141".into(),
-            &NodeColour::Yellow => "#FFFF00".into()
-        }
+            &NodeColour::Blue => "#97C2FC",
+            &NodeColour::Red => "#FB7E81",
+            &NodeColour::Green => "#7BE141",
+            &NodeColour::Yellow => "#FFFF00"
+        }.into()
     }
 }
 
@@ -136,6 +147,41 @@ impl Serialize for EdgeColour {
     }
 }
 
+/// Get the signals that will be displayed in the hover tooltip
+fn get_viewer_signals(graph: &ViewableGraph, edges: &Vec<usize>, incoming: bool) -> Vec<ViewerSignal> {
+    edges.iter().map(|e| {
+        let edge = &graph.dpdg.edges[*e];
+        let destination =  if incoming {
+            &graph.dpdg.vertices[edge.to as usize]
+        } else {
+            &graph.dpdg.vertices[edge.from as usize]
+        };
+        let name = if let Some(signal) = &destination.related_signal {
+            if signal.field_path.is_empty() {
+                signal.signal_path.clone()
+            } else {
+                format!("{} [{}]", signal.signal_path, signal.field_path)
+            }
+        } else { "".into() };
+        let value = destination.sim_data.as_ref().map(|d|  {
+            let translated = interpret_tywaves_value(&d, TranslationStrategy::Auto);
+            // format!("{} {}", translated.tpe.unwrap_or("".into()), translated.value)
+            translated.value
+        }).unwrap_or("".into());
+        let connection_type = match edge.kind {
+            PDGSpecEdgeKind::Conditional => "controlflow",
+            PDGSpecEdgeKind::Data => "data",
+            PDGSpecEdgeKind::Index => "index",
+            PDGSpecEdgeKind::Declaration => ""
+        }.into();
+        ViewerSignal {
+            name,
+            value,
+            connection_type
+        }
+    }).unique().collect()
+}
+
 #[tauri::command]
 pub fn get_n_timeslots(state: State<'_, RwLock<AppState>>) -> Result<u64, String> {
     map_err_to_string(|| {
@@ -162,6 +208,8 @@ pub fn get_partial_graph(state: State<'_, RwLock<AppState>>, range_begin: u64, r
                 let node = &graph.dpdg.vertices[*idx];
                 let edges = graph.dep_to_edges.get(&(*idx as u32));
                 let group = format!("t{}", graph.n_timestamps - timestamp);
+                let incoming = edges.map_or(vec![], |edges| get_viewer_signals(graph, edges, true));
+                let outgoing = graph.prov_to_edges.get(&(*idx as u32)).map_or(vec![], |edges| get_viewer_signals(graph, edges, true));
                 viewer_graph.vertices.push(ViewerNode {
                     id: *idx as u64,
                     label: node.name.clone(),
@@ -169,7 +217,10 @@ pub fn get_partial_graph(state: State<'_, RwLock<AppState>>, range_begin: u64, r
                     timestamp,
                     long_distance: false,
                     color: NodeColour::from(node.kind),
-                    shape: NodeShape::from(node.kind)
+                    shape: NodeShape::from(node.kind),
+                    code: graph.source_files.get(&node.file).map(|v| v.get(node.line as usize - 1).map(|l| l.clone())).flatten(),
+                    incoming,
+                    outgoing
                 });
                 if let Some(edges) = edges {
                     for edge in edges {
@@ -180,6 +231,9 @@ pub fn get_partial_graph(state: State<'_, RwLock<AppState>>, range_begin: u64, r
                             format!("{} {}", translated.tpe.unwrap_or("".into()), translated.value)
                         } else { "".into() };
                         if node.timestamp.abs_diff(destination.timestamp) > 3 {
+                            let edges = graph.dep_to_edges.get(&edge.to);
+                            let incoming = edges.map_or(vec![], |edges| get_viewer_signals(graph, edges, true));
+                            let outgoing = graph.prov_to_edges.get(&edge.to).map_or(vec![], |edges| get_viewer_signals(graph, edges, true));
                             // If an edge goes to a node that is more than 3 timesteps away, instead add it as a long distance relation
                             // It is important to generate a unique ID for these pseudo-nodes, because they MUST be unique in the graph
                             viewer_graph.vertices.push(ViewerNode {
@@ -189,7 +243,10 @@ pub fn get_partial_graph(state: State<'_, RwLock<AppState>>, range_begin: u64, r
                                 timestamp,
                                 long_distance: true,
                                 color: NodeColour::from(destination.kind),
-                                shape: NodeShape::from(destination.kind)
+                                shape: NodeShape::from(destination.kind),
+                                code: graph.source_files.get(&destination.file).map(|v| v.get(destination.line as usize - 1).map(|l| l.clone())).flatten(),
+                                incoming,
+                                outgoing
                             });
                             viewer_graph.edges.push(ViewerEdge {
                                 from: edge.from as u64,

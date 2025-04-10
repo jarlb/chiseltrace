@@ -15,7 +15,10 @@
   "dependencies": {
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-opener": "^2",
+    "highlight.js": "^11.11.1",
+    "svelte-highlight": "^7.8.3",
     "svelte-routing": "^2.13.0",
+    "tippy.js": "^6.3.7",
     "vis-data": "^7.1.9",
     "vis-network": "^9.1.9"
   },

@@ -6,11 +6,16 @@
   import type { Edge, Node, Options } from 'vis-network/esnext';
   import 'vis-network/styles/vis-network.css';
 
+  import CodeBlock from '../../lib/components/CodeBlock.svelte';
+
   let networkContainer: HTMLDivElement;
   let scrollWrapper: HTMLDivElement;
   let network: Network;
 
   let timestampsInGraph: number[] = [];
+
+  let hoveredNode: any = null;
+  let tooltipPosition = { x: 0, y: 0 };
 
   interface Timestamp {
     id: string;
@@ -19,10 +24,19 @@
     width: number;
   }
 
+  interface Signal {
+    name: string,
+    value: string,
+    connectionType: string
+  }
+
   interface CustomNode extends Node {
     group: string;
     timestamp: number;
     longDistance: boolean;
+    code: string | null;
+    incoming: Signal[];
+    outgoing: Signal[];
   }
 
   interface ViewerGraph {
@@ -127,6 +141,19 @@
         }, 1000);  
       });
 
+      network.on("hoverNode", (event) => {
+        console.log(event);
+        hoveredNode = nodes.get(event.node);
+        const pos = network.getPositions([event.node])[event.node];
+        tooltipPosition = network.canvasToDOM(pos);
+      });
+
+      network.on("blurNode", () => {
+        hoveredNode = null;
+      });
+
+      network.on("dragStart", () => { hoveredNode = null; });
+
       network.on("beforeDrawing", () => {
         const nodePositions = network.getPositions();
         nodes.forEach((node) => {
@@ -146,7 +173,7 @@
             } else {
               constrainedY = Math.max(
                 // I tried doing it with a % of the networkContainer.clientHeight
-                // For some reason, it *really* doesn't like that and pegs the CPU at 100%
+                // For some reason, it *really* doesn't like that and pegs the CPU at 100% ¯\_(ツ)_/¯
                 250, 
                 Math.min(networkContainer.clientHeight - 50, currentPos.y)
               );
@@ -173,6 +200,8 @@
     return () => {
       resizeObserver.unobserve(networkContainer);
       network.off('dragEnd');
+      network.off('hoverNode');
+      network.off('blurNode');
       scrollWrapper.removeEventListener('wheel', handleScroll);
       window.removeEventListener('resize', handleWindowResize)
     };
@@ -183,7 +212,8 @@
       interaction: {
         zoomView: false,
         dragView: false,
-        dragNodes: true
+        dragNodes: true,
+        hover: true
       },
       physics: {
         enabled: true,
@@ -305,6 +335,47 @@
 
     <div class="network-wrapper">
       <div bind:this={networkContainer} class="network"></div>
+      {#if hoveredNode}
+      <div class="node-tooltip" style={`left: ${tooltipPosition.x}px; top: ${tooltipPosition.y}px`}>
+        <h3>{hoveredNode.label}</h3>
+        {#if hoveredNode.code}
+          <CodeBlock code={hoveredNode.code}></CodeBlock>
+        {/if}
+
+        <div class="signals-container">
+          {#if hoveredNode.incoming?.length}
+            <div class="signal-list incoming">
+              <h4>Incoming Signals</h4>
+              {#each hoveredNode.incoming as signal}
+                <div class="signal-item">
+                  <span class="signal-name">{signal.name}</span>
+                  <span class="signal-value">{signal.value ?? 'null'}</span>
+                  <span class="signal-connection {signal.connectionType}">
+                    {signal.connectionType}
+                  </span>
+                </div>
+              {/each}
+            </div>
+          {/if}
+      
+          {#if hoveredNode.outgoing?.length}
+            <div class="signal-list outgoing">
+              <h4>Outgoing Signals</h4>
+              {#each hoveredNode.outgoing as signal}
+                <div class="signal-item">
+                  <span class="signal-name">{signal.name}</span>
+                  <span class="signal-value">{signal.value ?? 'null'}</span>
+                  <span class="signal-connection {signal.connectionType}">
+                    {signal.connectionType}
+                  </span>
+                </div>
+              {/each}
+            </div>
+          {/if}
+        </div>
+
+      </div>
+    {/if}
     </div>
   </div>
 </div>
@@ -371,6 +442,19 @@
     position: fixed;
   }
 
+  .node-tooltip {
+    position: absolute;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 8px 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    z-index: 1000;
+    pointer-events: none;
+    transform: translate(10px, -50%);
+    max-width: 400px;
+  }
+
   .network {
     height: 100%;
     background: transparent;
@@ -387,5 +471,61 @@
     font-weight: 500;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     z-index: 100;
+  }
+
+  .signals-container {
+    margin-top: 8px;
+  }
+
+  .signal-list h4 {
+    margin: 8px 0 4px 0;
+    font-size: 12px;
+    color: #586069;
+    font-weight: 600;
+  }
+
+  .signal-item {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 0.8fr;
+    gap: 8px;
+    align-items: center;
+    padding: 4px 0;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  .signal-name {
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .signal-value {
+    font-family: monospace;
+    font-size: 12px;
+    color: #666;
+    text-align: right;
+    padding-right: 4px;
+  }
+
+  .signal-connection {
+    font-size: 11px;
+    text-align: center;
+    padding: 2px 4px;
+    border-radius: 3px;
+  }
+
+  /* Connection type styling */
+  .signal-connection.data {
+    background: #d4e6fd;
+    color: #62a6ff;
+  }
+  .signal-connection.index {
+    background: #fbdaff;
+    color: #c153ce;
+  }
+  .signal-connection.controlflow {
+    background: #ffd7d8;
+    color: #ff6568;
   }
 </style>
