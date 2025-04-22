@@ -5,6 +5,7 @@ use program_slicer_lib::{conversion::pdg_convert_to_source, slicing::{pdg_slice,
 use program_slicer_lib::graphbuilder::GraphBuilder;
 use program_slicer_lib::pdg_spec::PDGSpec;
 use program_slicer_lib::sim_data_injection::TywavesInterface;
+use serde::Deserialize;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -22,8 +23,8 @@ enum Commands {
         /// The statement that should be used for the program slicing.
         slice_criterion: String,
     },
-    /// Perform a dynamic slice operation.
-    DynSlice {
+    /// Convert to a dynamic program dependency graph.
+    DynPDG {
         /// The path to the input PDG
         pdg_path: String,
         /// The path the the VCD file
@@ -43,10 +44,13 @@ fn main() -> Result<()> {
     let argpath = match &args.command {
         Commands::Slice { path, .. } => path,
         Commands::Convert { path } => path,
-        Commands::DynSlice { pdg_path, .. } => pdg_path
+        Commands::DynPDG { pdg_path, .. } => pdg_path
     };
     let buf = read_to_string(argpath)?;
-    let pdg_raw = serde_json::from_str::<PDGSpec>(buf.as_str())?;
+    let mut deser = serde_json::Deserializer::from_str(buf.as_str());
+    deser.disable_recursion_limit();
+    //serde_json::from_str::<PDGSpec>(buf.as_str())?;
+    let pdg_raw = PDGSpec::deserialize(&mut deser)?;
 
     match &args.command {
         Commands::Slice { slice_criterion, .. } => {
@@ -60,19 +64,24 @@ fn main() -> Result<()> {
         
             serde_json::to_writer_pretty(writer, &converted)?;
         },
-        Commands::DynSlice { pdg_path:_, vcd_path, slice_criterion } => {
-            let sliced = pdg_slice(pdg_raw, slice_criterion)?;
-            write_pdg(&sliced, "out_pdg.json")?;
+        Commands::DynPDG { pdg_path:_, vcd_path, slice_criterion } => {
+            // let sliced = pdg_slice(pdg_raw, slice_criterion)?;
+            let sliced  = pdg_raw;
+            // write_pdg(&sliced, "out_pdg.json")?;
 
+            println!("Starting dynamic PDG building");
             let mut builder = GraphBuilder::new(vcd_path, vec!["TOP".into(), "svsimTestbench".into(), "dut".into()], sliced)?;
-            let dpdg = builder.process()?;
-
+            let dpdg = builder.process(slice_criterion)?;
+            
+            println!("Converting to source representation");
             let mut converted_pdg = pdg_convert_to_source(dpdg, true);
 
-            let tywaves = TywavesInterface::new(Path::new("../resources/hgldd"),
-                vec!["TOP".into(), "svsimTestbench".into(), "dut".into()], &"RegFileTester".into())?;
+            println!("Adding tywaves info");
+            let tywaves = TywavesInterface::new(Path::new("../resources/chiselwatt/hgldd"),
+                vec!["TOP".into(), "svsimTestbench".into(), "dut".into()], &"Core".into())?;
             
-            let tywaves_vcd_path = tywaves.vcd_rewrite(Path::new("../resources/trace.vcd"))?;
+            let tywaves_vcd_path = tywaves.vcd_rewrite(Path::new("../resources/chiselwatt/trace.vcd"))?;
+            println!("VCD rewritten");
             tywaves.inject_sim_data(&mut converted_pdg, &tywaves_vcd_path)?;
             // let signal = tywaves.find_signal(&["TOP".into(), "svsimTestbench".into(), "dut".into(), "regfile".into(), "pred_io_w_en".into()])?;
             // println!("Translated variable: {:#?}", tywaves.translate_variable(&signal, &"0".repeat(1))?);

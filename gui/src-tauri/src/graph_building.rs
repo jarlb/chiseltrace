@@ -1,6 +1,7 @@
 use std::{collections::{HashMap, HashSet}, fs::{read_to_string, File}, io::BufReader, sync::RwLock};
 
-use program_slicer_lib::{conversion::pdg_convert_to_source, graphbuilder::GraphBuilder, sim_data_injection::TywavesInterface, slicing::pdg_slice};
+use program_slicer_lib::{conversion::pdg_convert_to_source, graphbuilder::GraphBuilder, pdg_spec::PDGSpec, sim_data_injection::TywavesInterface, slicing::pdg_slice};
+use serde::Deserialize;
 use tauri::State;
 use anyhow::Result;
 
@@ -20,23 +21,37 @@ pub async fn make_dpdg(state: State<'_, RwLock<AppState>>) -> Result<(), String>
         };
         
         let reader = BufReader::new(File::open(&pdg_config.pdg_path)?);
-        let pdg_raw = serde_json::from_reader(reader)?;
+
+        let mut deser = serde_json::Deserializer::from_reader(reader);
+        deser.disable_recursion_limit();
+        //serde_json::from_str::<PDGSpec>(buf.as_str())?;
+        let pdg_raw = PDGSpec::deserialize(&mut deser)?;
+        let sliced = pdg_raw;
+
+        println!("Read PDG from file");
 
         // First do a static slice to try to reduce the amount of analyzed nodes
-        let sliced = pdg_slice(pdg_raw, &pdg_config.criterion)?;
+        // let sliced = pdg_slice(pdg_raw, &pdg_config.criterion)?;
 
         // Build the DPDG
         let mut builder = GraphBuilder::new(&pdg_config.vcd_path, pdg_config.extra_scopes.clone(), sliced)?;
-        let dpdg = builder.process()?;
+        let dpdg = builder.process(&pdg_config.criterion)?;
+
+        println!("DPDG build complete");
 
         // Convert to source language
         let mut converted_pdg = pdg_convert_to_source(dpdg, false);
+
+        println!("Converted to source representation");
 
         // Add simulation data
         let tywaves = TywavesInterface::new(&pdg_config.hgldd_path, pdg_config.extra_scopes.clone(), &pdg_config.top_module)?;
     
         let tywaves_vcd_path = tywaves.vcd_rewrite(&pdg_config.vcd_path)?;
+        println!("VCD rewrite done");
         tywaves.inject_sim_data(&mut converted_pdg, &tywaves_vcd_path)?;
+
+        println!("Data injection done");
 
         // Create maps to speed up the viewer
         let mut time_to_nodes = HashMap::new();

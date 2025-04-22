@@ -73,7 +73,7 @@ impl GraphBuilder {
         Ok(GraphBuilder { reader: vcd_reader, pdg, linked_nodes: linked, pred_values: HashMap::new(), pred_idx_to_id: vec![], dependency_state: HashMap::new() })
     }
 
-    pub fn process(&mut self) -> Result<ExportablePDG> {
+    pub fn process(&mut self, criterion: &String) -> Result<ExportablePDG> {
         self.init_predicates()?;
 
         let mut eof_reached = false;
@@ -113,10 +113,10 @@ impl GraphBuilder {
                     if let Some(symb) = &node.inner.assigns_to { // Add conditions
                         if node.inner.clocked {
                             if node.inner.kind == PDGSpecNodeKind::DataDefinition {
-                                println!("Register init found");
+                                // println!("Register init found");
                                 // Handle register resets.
                                 if corrected_timestamp == 0 {
-                                    println!("Register with reset: {:?}", node.inner.name);
+                                    // println!("Register with reset: {:?}", node.inner.name);
                                     self.dependency_state.insert(symb.clone(), dpdg_node.clone());
                                 }
                             } else {
@@ -188,8 +188,8 @@ impl GraphBuilder {
             for (k,v) in new_reg_providers {
                 self.dependency_state.insert(k, v);
             }
-            println!("{}", corrected_timestamp);
-            println!("Activated nodes: {:?}", activated_statements);
+            // println!("{}", corrected_timestamp);
+            // println!("Activated nodes: {:?}", activated_statements);
 
             // println!("{:#?}", self.reader.probe_values);
         }
@@ -197,9 +197,13 @@ impl GraphBuilder {
         // println!("Full graph: {:#?}", all_nodes[all_nodes.len()-1]);
         println!("Amount of nodes: {}", all_nodes.len());
 
-        // TODO: search for the correct node to export! It might not be at the end.
+        let exported_node = all_nodes.iter()
+            .filter(|n| n.borrow().inner.name.eq(criterion))
+            .max_by_key(|n| n.borrow().timestamp)
+            .ok_or(Error::StatementLookupError("Criterion not found in DPDG".into()))?;
 
-        Ok(dpdg_make_exportable(all_nodes[all_nodes.len()-1].clone()))
+        println!("Making pdg exportable");
+        Ok(dpdg_make_exportable(exported_node.clone()))
     }
 
     fn init_predicates(&mut self) -> Result<()> {
@@ -278,7 +282,12 @@ impl VcdReader {
                         // Probes may have the same IdCode if they are driven by the same value.
                         // We need to check if it exists and update the vector if it does.
                         if var.reference.starts_with("probe_") {
-                            probes.entry(var.code).and_modify(|e: &mut Vec<String>| e.push(prefix.clone() + "." + &var.reference)).or_insert(vec![prefix + "." + &var.reference]);
+                            let probe_path = if prefix.is_empty() {
+                                var.reference.clone()
+                            } else {
+                                prefix.clone() + "." + &var.reference
+                            };
+                            probes.entry(var.code).and_modify(|e: &mut Vec<String>| e.push(probe_path.clone())).or_insert(vec![probe_path]);
                         }
                     }
                     _ => ()
@@ -328,7 +337,17 @@ impl VcdReader {
                 }
                 Command::ChangeScalar(i, v) => {
                     // println!("Change in {:?}: {v}", i);
-                    self.changes_buffer.push(ValueChange { id: i, value: v });
+                    if let Some(probes) = self.probes.get(&i) {
+                        for probe in probes {
+                            let unsigned_v = match v {
+                                vcd::Value::V1 => 1,
+                                _ => 0
+                            };
+                            self.probe_change_buffer.push((probe.clone(), unsigned_v));
+                        }
+                    } else {
+                        self.changes_buffer.push(ValueChange { id: i, value: v });
+                    }
                 }
                 Command::ChangeVector(i, v) => {
                     if let Some(probes) = self.probes.get(&i) {

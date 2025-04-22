@@ -7,7 +7,7 @@ edition = "2024"
 anyhow = "1.0.97"
 itertools = "0.14.0"
 serde = { version = "1.0", features = ["derive", "rc"] }
-serde_json = "1.0"
+serde_json = {version = "1.0", features = ["unbounded_depth"]}
 thiserror = "2.0.12"
 vcd = "0.7.0"
 tywaves-rs = {path = "../third_party/tywaves-rs", version = "0.1.4" }

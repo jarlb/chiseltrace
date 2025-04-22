@@ -42,10 +42,10 @@ fn auto_translate(bitstring: String, tpe: &Option<String>) -> String {
         } else if tpe.contains("logic") {
             translate_as_bool(bitstring)
         } else {
-            translate_as_uint(bitstring)
+            bitstring
         }
     } else {
-        translate_as_uint(bitstring)
+        bitstring
     }
 }
 

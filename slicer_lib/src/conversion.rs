@@ -21,6 +21,11 @@ pub fn pdg_convert_to_source(pdg: ExportablePDG, verbose_name: bool) -> Exportab
         grouped_nodes.entry((node.file.clone(), node.line, group_timestamp)).or_default().push((node.clone(), i));
     }
 
+    // TODO: the bug comes from the fact that the timestamp is saturated to 0, so the grouper tries to group the initial value wire
+    // with other t=1 nodes, but there is no vertex reachability on the same timestamp, so it doesn't group properly.
+    // The solution would be to switch to i64 for timestamps (bad idea), or deploy a hotfix that would scan for non-chisel nodes at group time 1,
+    // then put them on group time 0 (also not great)
+
     // Redirect all Index edges. The probes will be removed in the next step
     let new_edges = pdg.edges.iter().flat_map(|e| {
         if e.kind == PDGSpecEdgeKind::Index {
@@ -144,18 +149,24 @@ pub fn pdg_convert_to_source(pdg: ExportablePDG, verbose_name: bool) -> Exportab
         let contains_cond = g.iter().any(|(v,_)| v.kind == PDGSpecNodeKind::ControlFlow);
         let contains_io = g.iter().any(|(v,_)| v.kind == PDGSpecNodeKind::IO);
 
-        let vert_kind = if contains_io {
-            PDGSpecNodeKind::IO
-        } else if contains_data {
-            PDGSpecNodeKind::Connection
-        } else if contains_cond {
-            PDGSpecNodeKind::ControlFlow
+        let primary_statement = g.iter().find(|n| n.0.is_chisel_assignment);
+
+
+        let vert_kind = if let Some(stmt) = primary_statement {
+            stmt.0.kind
         } else {
-            PDGSpecNodeKind::Definition
+            if contains_io {
+                PDGSpecNodeKind::IO
+            } else if contains_data {
+                PDGSpecNodeKind::Connection
+            } else if contains_cond {
+                PDGSpecNodeKind::ControlFlow
+            } else {
+                PDGSpecNodeKind::Definition
+            }  
         };
         let v0 = &g[0].0;
         let filename = v0.file.split("/").last().unwrap();
-        let primary_statement = g.iter().find(|n| n.0.is_chisel_assignment);
         let node_name = if let Some((stmt, _)) = primary_statement {
             if verbose_name {
                 format!("{} at t={} ({}:{})", stmt.name, stmt.timestamp, filename, stmt.line)
@@ -203,12 +214,12 @@ pub fn dpdg_make_exportable(root: Rc<RefCell<DynPDGNode>>) -> ExportablePDG {
             let dep_idx = if let Some((idx, _)) = scanned_nodes.iter().find_position(|el| Rc::ptr_eq(el, dep)) {
                 idx
             } else {
+                stack.push(dep.clone());
                 scanned_nodes.push(dep.clone());
                 scanned_nodes.len()-1
             };
             
             edges.insert(ExportablePDGEdge { from: this_idx as u32, to: dep_idx as u32, kind: *kind, clocked: borrowed_node.inner.clocked });
-            stack.push(dep.clone());
         }
     }
 
