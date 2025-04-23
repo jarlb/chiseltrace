@@ -187,9 +187,65 @@ pub fn pdg_convert_to_source(pdg: ExportablePDG, verbose_name: bool) -> Exportab
     .unique()
     .collect::<Vec<_>>();
 
+    // There is one final problem: some constructs, such as lookup tables may generate an enormous amount of nodes.
+    // Most of these have been merged at this point, but there may still be some that are not. These nodes are
+    // marked as non-chisel statements and can therefore non contain simulation data. It is best to merge them for clarity.
+    // To do this, we will search each timestep for duplicate non-chisel statements. We will then merge them into one and
+    // dedup any edges.
+
+    let mut removed_indices = vec![];
+    let mut processed_verts: HashMap<u64, Vec<&ExportablePDGNode>> = HashMap::new();
+    for (vert_idx, vert) in new_verts.iter().enumerate() {
+        processed_verts.entry(vert.timestamp)
+            .and_modify(|vs| {
+                if vs.iter().find(|v| !v.is_chisel_assignment &&
+                v.file == vert.file && v.line == vert.line && v.name == vert.name).is_none() {
+                    // If for the verts timestamp, we do not find a vert that is same, we add the vert to the processed verts.
+                    // If needed, we could check for the edges too (they will have the same ones), but I don't think it is necessary.
+                    vs.push(vert);
+                } else {
+                    // Otherwise, we mark for deletion
+                    removed_indices.push(vert_idx);
+                }
+            })
+            .or_insert(vec![vert]);
+    }
+
+    // Now we just delete the duplicate verts.
+    removed_indices.sort();
+    removed_indices.reverse();
+    let mut pruned_verts = new_verts.clone();
+    for i in &removed_indices {
+        pruned_verts.remove(*i);
+    }
+
+    // and update the edges as well
+    let mut edge_remap: HashMap<usize, Option<usize>> = HashMap::new();
+    let mut removed_counter = 0;
+    for i in 0..new_verts.len() {
+        edge_remap.insert(i,if removed_indices.contains(&i) {
+            removed_counter += 1;
+            None
+        } else {
+            Some(i - removed_counter)
+        });
+    }
+
+    let remapped_edges = merged_edges.iter().filter_map(|e| {
+        let remap_to = edge_remap[&(e.to as usize)];
+        let remap_from = edge_remap[&(e.from as usize)];
+
+        if let (Some(to), Some(from)) = (remap_to, remap_from) {
+            Some(ExportablePDGEdge{from: from as u32, to: to as u32, ..e.clone()})
+        } else {
+            None
+        }
+    }).collect::<Vec<_>>();
+
+
     ExportablePDG {
-        vertices: new_verts,
-        edges: merged_edges
+        vertices: pruned_verts,
+        edges: remapped_edges
     }
 }
 
