@@ -50,7 +50,7 @@ fn auto_translate(bitstring: String, tpe: &Option<String>) -> String {
 }
 
 fn translate_as_uint(bitstring: String) -> String {
-    let mut val = 0;
+    let mut val: u128 = 0;
     let mut bitval = 1;
 
     for ch in bitstring.chars().rev() {
@@ -70,7 +70,7 @@ fn translate_as_sint(bitstring: String) -> String {
         return "UDF".into();
     }
 
-    let mut val: i64 = 0;
+    let mut val: i128 = 0;
     let chars: Vec<char> = bitstring.chars().collect();
     let msb_index = chars.len() - 1;
 

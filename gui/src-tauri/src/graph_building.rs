@@ -51,6 +51,8 @@ pub async fn make_dpdg(state: State<'_, RwLock<AppState>>) -> Result<(), String>
         println!("VCD rewrite done");
         tywaves.inject_sim_data(&mut converted_pdg, &tywaves_vcd_path)?;
 
+        //let converted_pdg = dpdg;
+
         println!("Data injection done");
 
         // Create maps to speed up the viewer

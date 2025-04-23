@@ -258,7 +258,7 @@ impl TywavesInterface {
 
         let mut values_cache: HashMap<String, String> = HashMap::new();
         let mut rising_edge_found = false;
-        let mut current_timestamp = 0;
+        let mut current_timestamp: u64 = 0;
         let mut clock_val = vcd::Value::V0;
         let mut cycle_changes: HashMap<IdCode, vcd::Vector> = HashMap::new();
         for command in parser {
@@ -266,33 +266,43 @@ impl TywavesInterface {
             match command {
                 Command::Timestamp(t) => {
                     // println!("Timestamp: {t}, current time: {current_timestamp}");
-                    if rising_edge_found {
-                        rising_edge_found = false;
-                        for (k,v) in &cycle_changes {
-                            let signals = &signal_mapping[k];
-                            for signal in signals {
-                                values_cache.insert(signal.clone(), v.to_string());
-                            }
+                    // Update the global hashmap with the changes
+                    for (k,v) in &cycle_changes {
+                        let signals = &signal_mapping[k];
+                        for signal in signals {
+                            values_cache.insert(signal.clone(), v.to_string());
                         }
-                        if let Some(nodes) = node_map.get_mut(&current_timestamp) {
-                            for node in nodes {
-                                if let Some(related_signal) = &node.related_signal {
-                                    let mut hier_path = top_path.clone();
-                                    hier_path.extend_from_slice(&related_signal.signal_path.split(".").map(|s| s.to_string()).collect::<Vec<_>>());
-                                    let ty_var = self.find_signal(&hier_path).ok();
-                                    // println!("{:#?}", ty_var);
-                                    if let (Some(value), Some(tywaves_signal)) = (values_cache.get(&related_signal.signal_path), ty_var)  {
-                                        let translated_var = self.translate_variable(&tywaves_signal, value)?;
-                                        node.sim_data = find_ground_field(&translated_var, &related_signal.field_path);
-                                    }
+                    }
+
+                    // We update the simulation data of the nodes at each timestep, and only advance time on a rising edge.
+                    // This avoids an edge case where an external stimulus might be applied at a falling edge, causing wrong
+                    // simulation data to be associated with some nodes.
+
+                    let timestep = if rising_edge_found {
+                        rising_edge_found = false;
+                        current_timestamp += 1;
+                        current_timestamp
+                    } else {
+                        // This is needed for external stimuli.
+                        current_timestamp.saturating_sub(1)
+                    };
+
+                    if let Some(nodes) = node_map.get_mut(&timestep) {
+                        for node in nodes {
+                            if let Some(related_signal) = &node.related_signal {
+                                let mut hier_path = top_path.clone();
+                                hier_path.extend_from_slice(&related_signal.signal_path.split(".").map(|s| s.to_string()).collect::<Vec<_>>());
+                                let ty_var = self.find_signal(&hier_path).ok();
+                                // println!("{:#?}", ty_var);
+                                if let (Some(value), Some(tywaves_signal)) = (values_cache.get(&related_signal.signal_path), ty_var)  {
+                                    let translated_var = self.translate_variable(&tywaves_signal, value)?;
+                                    node.sim_data = find_ground_field(&translated_var, &related_signal.field_path);
                                 }
                             }
                         }
-                        // println!("{:#?}", values_cache);
-                        cycle_changes.clear();
-                        // <Process the events>
-                        current_timestamp += 1;
                     }
+
+                    cycle_changes.clear();
                 }
                 Command::ChangeVector(i, v) if i == clock => {
                     let new_clock_val  = v.get(0).unwrap();
