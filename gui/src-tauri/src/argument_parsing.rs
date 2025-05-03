@@ -2,16 +2,33 @@ use std::path::Path;
 
 use clap::Parser;
 use anyhow::Result;
+use program_slicer_lib::graphbuilder::CriterionType;
 
 use crate::errors;
+
+
+fn parse_criterion(s: &str) -> Result<CriterionType, String> {
+    let (kind, value) = s.split_once(':')
+        .ok_or("Expected 'type:value' format")?;
+    match kind.to_lowercase().as_str() {
+        "statement" => Ok(CriterionType::Statement(value.into())),
+        "signal" => Ok(CriterionType::Signal(value.into())),
+        _ => Err(format!("Unknown criterion type '{}'", kind)),
+    }
+}
 
 /// A GUI program to visualize chisel dynamic program dependency graphs
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 pub struct Args {
     /// Slicing criterion (e.g. the statement that will be backtraced)
-    #[arg(short, long)]
-    pub slice_criterion: String,
+    #[arg(
+        short,
+        long,
+        value_parser = parse_criterion,
+        help = "Criterion in format 'type:value' (e.g., 'statement:connect_io.a')"
+    )]
+    pub slice_criterion: CriterionType,
 
     /// Path to the program dependency graph exported by chisel
     #[arg(short, long)]
@@ -32,6 +49,9 @@ pub struct Args {
     /// Specifies additional scopes that will be used while processing.
     #[clap(short, long, value_delimiter = ' ', num_args = 1..)]
     pub extra_scopes: Option<Vec<String>>,
+
+    #[arg(short, long)]
+    pub max_timesteps: Option<u64>
 }
 
 impl Args {

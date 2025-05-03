@@ -28,7 +28,8 @@ pub fn run() -> Result<()> {
         vcd_path: args.vcd_path.into(),
         hgldd_path: args.hgldd_path.into(),
         top_module: args.top_module,
-        extra_scopes: args.extra_scopes.unwrap_or(vec![])
+        extra_scopes: args.extra_scopes.unwrap_or(vec![]),
+        max_timesteps: args.max_timesteps
     });
 
     tauri::Builder::default()

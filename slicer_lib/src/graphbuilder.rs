@@ -49,6 +49,12 @@ pub struct DynPDGNode {
     pub dependencies: Vec<(Rc<RefCell<DynPDGNode>>, PDGSpecEdgeKind)>
 }
 
+#[derive(Debug, Clone)]
+pub enum CriterionType {
+    Statement(String),
+    Signal(String)
+}
+
 impl GraphBuilder {
     pub fn new(vcd_path: impl AsRef<Path>, extra_scopes: Vec<String>, pdg: PDGSpec) -> Result<GraphBuilder> {
         let vcd_reader = VcdReader::new(vcd_path, extra_scopes)?;
@@ -73,12 +79,12 @@ impl GraphBuilder {
         Ok(GraphBuilder { reader: vcd_reader, pdg, linked_nodes: linked, pred_values: HashMap::new(), pred_idx_to_id: vec![], dependency_state: HashMap::new() })
     }
 
-    pub fn process(&mut self, criterion: &String) -> Result<ExportablePDG> {
+    pub fn process(&mut self, criterion: &CriterionType, max_timesteps: Option<u64>) -> Result<ExportablePDG> {
         self.init_predicates()?;
 
         let mut eof_reached = false;
         let mut all_nodes = vec![];
-        while !eof_reached {
+        while !eof_reached && self.reader.current_time * 2 <= max_timesteps.unwrap_or(u64::MAX) {
             let (c, eof) = self.reader.read_cycle_changes()?;
             let corrected_timestamp = self.reader.current_time - 1; // Time starts at zero
             eof_reached = eof;
@@ -117,6 +123,7 @@ impl GraphBuilder {
                                 // Handle register resets.
                                 if corrected_timestamp == 0 {
                                     // println!("Register with reset: {:?}", node.inner.name);
+                                    // dpdg_node.borrow_mut().timestamp -= 1;
                                     self.dependency_state.insert(symb.clone(), dpdg_node.clone());
                                 }
                             } else {
@@ -198,7 +205,12 @@ impl GraphBuilder {
         println!("Amount of nodes: {}", all_nodes.len());
 
         let exported_node = all_nodes.iter()
-            .filter(|n| n.borrow().inner.name.eq(criterion))
+            .filter(|n| {
+                match criterion {
+                    CriterionType::Statement(c) => n.borrow().inner.name.eq(c),
+                    CriterionType::Signal(c) => n.borrow().inner.assigns_to.as_ref() == Some(c)
+                }
+            })
             .max_by_key(|n| n.borrow().timestamp)
             .ok_or(Error::StatementLookupError("Criterion not found in DPDG".into()))?;
 

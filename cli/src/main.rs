@@ -2,7 +2,7 @@ use std::{fs::{read_to_string, File}, io::BufWriter, path::Path};
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use program_slicer_lib::{conversion::pdg_convert_to_source, slicing::{pdg_slice, write_pdg}};
-use program_slicer_lib::graphbuilder::GraphBuilder;
+use program_slicer_lib::graphbuilder::{GraphBuilder, CriterionType};
 use program_slicer_lib::pdg_spec::PDGSpec;
 use program_slicer_lib::sim_data_injection::TywavesInterface;
 use serde::Deserialize;
@@ -71,7 +71,7 @@ fn main() -> Result<()> {
 
             println!("Starting dynamic PDG building");
             let mut builder = GraphBuilder::new(vcd_path, vec!["TOP".into(), "svsimTestbench".into(), "dut".into()], sliced)?;
-            let dpdg = builder.process(slice_criterion)?;
+            let dpdg = builder.process(&CriterionType::Statement(slice_criterion.clone()), None)?;
             
             println!("Converting to source representation");
             let mut converted_pdg = pdg_convert_to_source(dpdg, true);

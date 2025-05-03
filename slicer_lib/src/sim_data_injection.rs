@@ -278,17 +278,24 @@ impl TywavesInterface {
                     // This avoids an edge case where an external stimulus might be applied at a falling edge, causing wrong
                     // simulation data to be associated with some nodes.
 
+                    // TODO: potential bug!! registers update at the rising edge and latch. However, this is not handled. If a register is directly
+                    // connected to an external stimulus, the wrong value may appear.
+
+                    // NOTE: there seems to be something wrong with the way the simulation data is added to the nodes,
+                    // the external stimulus correction is altering register values, this should NOT be the case.
+                    // Somehow, everything falls apart without it...........
+
                     let timestep = if rising_edge_found {
-                        rising_edge_found = false;
                         current_timestamp += 1;
                         current_timestamp
                     } else {
                         // This is needed for external stimuli.
                         current_timestamp.saturating_sub(1)
                     };
-
+                    // println!("{t} {timestep}");
                     if let Some(nodes) = node_map.get_mut(&timestep) {
                         for node in nodes {
+                            if node.name.contains("defreg") && current_timestamp != 0 { continue; }
                             if let Some(related_signal) = &node.related_signal {
                                 let mut hier_path = top_path.clone();
                                 hier_path.extend_from_slice(&related_signal.signal_path.split(".").map(|s| s.to_string()).collect::<Vec<_>>());
@@ -301,7 +308,7 @@ impl TywavesInterface {
                             }
                         }
                     }
-
+                    rising_edge_found = false;
                     cycle_changes.clear();
                 }
                 Command::ChangeVector(i, v) if i == clock => {

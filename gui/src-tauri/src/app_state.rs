@@ -1,6 +1,6 @@
 use std::{collections::HashMap, path::PathBuf};
 
-use program_slicer_lib::pdg_spec::ExportablePDG;
+use program_slicer_lib::{graphbuilder::CriterionType, pdg_spec::ExportablePDG};
 
 pub struct AppState {
     pub pdg_config: Option<PDGConfig>,
@@ -15,12 +15,13 @@ impl AppState {
 
 #[derive(Debug, Clone)]
 pub struct PDGConfig {
-    pub criterion: String,
+    pub criterion: CriterionType,
     pub pdg_path: PathBuf,
     pub vcd_path: PathBuf,
     pub hgldd_path: PathBuf,
     pub top_module: String,
-    pub extra_scopes: Vec<String>
+    pub extra_scopes: Vec<String>,
+    pub max_timesteps: Option<u64>
 }
 
 #[derive(Debug, Clone)]
