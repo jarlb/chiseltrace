@@ -35,7 +35,7 @@ pub async fn make_dpdg(state: State<'_, RwLock<AppState>>) -> Result<(), String>
 
         // Build the DPDG
         let mut builder = GraphBuilder::new(&pdg_config.vcd_path, pdg_config.extra_scopes.clone(), sliced)?;
-        let dpdg = builder.process(&pdg_config.criterion, pdg_config.max_timesteps)?;
+        let dpdg = builder.process(&pdg_config.criterion, pdg_config.max_timesteps.map(|t| t as i64))?;
 
         println!("DPDG build complete");
 
@@ -53,6 +53,10 @@ pub async fn make_dpdg(state: State<'_, RwLock<AppState>>) -> Result<(), String>
         let tywaves_vcd_path = tywaves.vcd_rewrite(&pdg_config.vcd_path)?;
         println!("VCD rewrite done");
         tywaves.inject_sim_data(&mut converted_pdg, &tywaves_vcd_path)?;
+
+        for v in &mut converted_pdg.vertices {
+            v.timestamp += 1;
+        }
 
         //let converted_pdg = dpdg;
 
@@ -74,7 +78,7 @@ pub async fn make_dpdg(state: State<'_, RwLock<AppState>>) -> Result<(), String>
             prov_to_edges.entry(e.to).and_modify(|edges: &mut Vec<usize>| edges.push(idx)).or_insert(vec![idx]);
         }
 
-        let n_timestamps = converted_pdg.vertices.iter().fold(0, |acc, x| acc.max(x.timestamp));
+        let n_timestamps = converted_pdg.vertices.iter().fold(0, |acc, x| acc.max(x.timestamp)) as u64;
 
         // Find unique source files
         let mut source_paths = HashSet::new();

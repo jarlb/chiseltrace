@@ -11,7 +11,7 @@ pub fn pdg_convert_to_source(pdg: ExportablePDG, verbose_name: bool) -> Exportab
     // This will cause them to get grouped, which may not be desired.
 
     // First step is to make groups of vertices.
-    let mut grouped_nodes: HashMap<(String, u32, u64), Vec<(ExportablePDGNode, usize)>> = HashMap::new();
+    let mut grouped_nodes: HashMap<(String, u32, i64), Vec<(ExportablePDGNode, usize)>> = HashMap::new();
     for (i, node) in pdg.vertices.iter().enumerate() {
         // This correction is needed to counteract the correction in the graphbuilder.
         // Basically, registers update, then the wires update. That means that a register update at t=x 
@@ -194,7 +194,7 @@ pub fn pdg_convert_to_source(pdg: ExportablePDG, verbose_name: bool) -> Exportab
     // dedup any edges.
 
     let mut removed_indices = vec![];
-    let mut processed_verts: HashMap<u64, Vec<&ExportablePDGNode>> = HashMap::new();
+    let mut processed_verts: HashMap<i64, Vec<&ExportablePDGNode>> = HashMap::new();
     for (vert_idx, vert) in new_verts.iter().enumerate() {
         processed_verts.entry(vert.timestamp)
             .and_modify(|vs| {

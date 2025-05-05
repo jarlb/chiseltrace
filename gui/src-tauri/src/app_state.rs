@@ -27,7 +27,7 @@ pub struct PDGConfig {
 #[derive(Debug, Clone)]
 pub struct ViewableGraph {
     pub dpdg: ExportablePDG,
-    pub time_to_nodes: HashMap<u64, Vec<usize>>,
+    pub time_to_nodes: HashMap<i64, Vec<usize>>,
     pub dep_to_edges: HashMap<u32, Vec<usize>>,
     pub prov_to_edges: HashMap<u32, Vec<usize>>,
     pub n_timestamps: u64,

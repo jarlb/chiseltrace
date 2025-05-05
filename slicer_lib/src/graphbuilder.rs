@@ -21,7 +21,7 @@ struct VcdReader {
     header: vcd::Header,
     clock: vcd::IdCode,
     _reset: vcd::IdCode,
-    current_time: u64,
+    current_time: i64,
     clock_val: vcd::Value,
     changes_buffer: Vec<ValueChange>,
     probes: HashMap<IdCode, Vec<String>>,
@@ -45,7 +45,7 @@ struct PDGNode {
 #[derive(Debug, Serialize)]
 pub struct DynPDGNode {
     pub inner: PDGSpecNode,
-    pub timestamp: u64,
+    pub timestamp: i64,
     pub dependencies: Vec<(Rc<RefCell<DynPDGNode>>, PDGSpecEdgeKind)>
 }
 
@@ -79,12 +79,12 @@ impl GraphBuilder {
         Ok(GraphBuilder { reader: vcd_reader, pdg, linked_nodes: linked, pred_values: HashMap::new(), pred_idx_to_id: vec![], dependency_state: HashMap::new() })
     }
 
-    pub fn process(&mut self, criterion: &CriterionType, max_timesteps: Option<u64>) -> Result<Rc<RefCell<DynPDGNode>>> {
+    pub fn process(&mut self, criterion: &CriterionType, max_timesteps: Option<i64>) -> Result<Rc<RefCell<DynPDGNode>>> {
         self.init_predicates()?;
 
         let mut eof_reached = false;
         let mut all_nodes = vec![];
-        while !eof_reached && self.reader.current_time * 2 <= max_timesteps.unwrap_or(u64::MAX) {
+        while !eof_reached && self.reader.current_time * 2 <= max_timesteps.unwrap_or(i64::MAX) {
             let (c, eof) = self.reader.read_cycle_changes()?;
             let corrected_timestamp = self.reader.current_time - 1; // Time starts at zero
             eof_reached = eof;
@@ -123,7 +123,7 @@ impl GraphBuilder {
                                 // Handle register resets.
                                 if corrected_timestamp == 0 {
                                     // println!("Register with reset: {:?}", node.inner.name);
-                                    // dpdg_node.borrow_mut().timestamp -= 1;
+                                    dpdg_node.borrow_mut().timestamp -= 1;
                                     self.dependency_state.insert(symb.clone(), dpdg_node.clone());
                                 }
                             } else {

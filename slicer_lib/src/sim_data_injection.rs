@@ -244,7 +244,7 @@ impl TywavesInterface {
 
         let signal_mapping = build_signal_map(&header);
 
-        let mut node_map: HashMap<u64, Vec<&mut ExportablePDGNode>> = HashMap::new();
+        let mut node_map: HashMap<i64, Vec<&mut ExportablePDGNode>> = HashMap::new();
         for node in &mut pdg.vertices {
             node_map.entry(node.timestamp).or_default().push(node);
         }
@@ -258,7 +258,7 @@ impl TywavesInterface {
 
         let mut values_cache: HashMap<String, String> = HashMap::new();
         let mut rising_edge_found = false;
-        let mut current_timestamp: u64 = 0;
+        let mut current_timestamp: i64 = -1;
         let mut clock_val = vcd::Value::V0;
         let mut cycle_changes: HashMap<IdCode, vcd::Vector> = HashMap::new();
         for command in parser {
@@ -267,49 +267,65 @@ impl TywavesInterface {
                 Command::Timestamp(t) => {
                     // println!("Timestamp: {t}, current time: {current_timestamp}");
                     // Update the global hashmap with the changes
-                    for (k,v) in &cycle_changes {
-                        let signals = &signal_mapping[k];
-                        for signal in signals {
-                            values_cache.insert(signal.clone(), v.to_string());
+                    if rising_edge_found {
+                        if current_timestamp < 0 {
+                            current_timestamp = 0;
                         }
-                    }
-
-                    // We update the simulation data of the nodes at each timestep, and only advance time on a rising edge.
-                    // This avoids an edge case where an external stimulus might be applied at a falling edge, causing wrong
-                    // simulation data to be associated with some nodes.
-
-                    // TODO: potential bug!! registers update at the rising edge and latch. However, this is not handled. If a register is directly
-                    // connected to an external stimulus, the wrong value may appear.
-
-                    // NOTE: there seems to be something wrong with the way the simulation data is added to the nodes,
-                    // the external stimulus correction is altering register values, this should NOT be the case.
-                    // Somehow, everything falls apart without it...........
-
-                    let timestep = if rising_edge_found {
-                        current_timestamp += 1;
-                        current_timestamp
-                    } else {
-                        // This is needed for external stimuli.
-                        current_timestamp.saturating_sub(1)
-                    };
-                    // println!("{t} {timestep}");
-                    if let Some(nodes) = node_map.get_mut(&timestep) {
-                        for node in nodes {
-                            if node.name.contains("defreg") && current_timestamp != 0 { continue; }
-                            if let Some(related_signal) = &node.related_signal {
-                                let mut hier_path = top_path.clone();
-                                hier_path.extend_from_slice(&related_signal.signal_path.split(".").map(|s| s.to_string()).collect::<Vec<_>>());
-                                let ty_var = self.find_signal(&hier_path).ok();
-                                // println!("{:#?}", ty_var);
-                                if let (Some(value), Some(tywaves_signal)) = (values_cache.get(&related_signal.signal_path), ty_var)  {
-                                    let translated_var = self.translate_variable(&tywaves_signal, value)?;
-                                    node.sim_data = find_ground_field(&translated_var, &related_signal.field_path);
+                        rising_edge_found = false;
+                        for (k,v) in &cycle_changes {
+                            let signals = &signal_mapping[k];
+                            for signal in signals {
+                                values_cache.insert(signal.clone(), v.to_string());
+                            }
+                        }
+                        if let Some(nodes) = node_map.get_mut(&current_timestamp) {
+                            for node in nodes {
+                                if let Some(related_signal) = &node.related_signal {
+                                    let mut hier_path = top_path.clone();
+                                    hier_path.extend_from_slice(&related_signal.signal_path.split(".").map(|s| s.to_string()).collect::<Vec<_>>());
+                                    let ty_var = self.find_signal(&hier_path).ok();
+                                    // println!("{:#?}", ty_var);
+                                    if let (Some(value), Some(tywaves_signal)) = (values_cache.get(&related_signal.signal_path), ty_var)  {
+                                        let translated_var = self.translate_variable(&tywaves_signal, value)?;
+                                        node.sim_data = find_ground_field(&translated_var, &related_signal.field_path);
+                                    }
                                 }
                             }
                         }
+
+                        current_timestamp += 1;
+                        cycle_changes.clear();
+                    } else {
+                        // We need to determine the exact signal changes that occurred on the falling edge and put
+                        // println!("{current_timestamp}");
+                        // println!("{:#?}", cycle_changes);
+                        for (k,v) in &cycle_changes {
+                            let signals = &signal_mapping[k];
+                            for signal in signals {
+                                values_cache.insert(signal.clone(), v.to_string());
+                            }
+                        }
+                        let time = if current_timestamp == -1 {
+                            current_timestamp
+                        } else {
+                            current_timestamp.saturating_sub(1)
+                        };
+                        if let Some(nodes) = node_map.get_mut(&time) {
+                            for node in nodes {
+                                if let Some(related_signal) = &node.related_signal {
+                                    let mut hier_path = top_path.clone();
+                                    hier_path.extend_from_slice(&related_signal.signal_path.split(".").map(|s| s.to_string()).collect::<Vec<_>>());
+                                    let ty_var = self.find_signal(&hier_path).ok();
+                                    // println!("{:#?}", ty_var);
+                                    if let (Some(value), Some(tywaves_signal)) = (values_cache.get(&related_signal.signal_path), ty_var)  {
+                                        let translated_var = self.translate_variable(&tywaves_signal, value)?;
+                                        node.sim_data = find_ground_field(&translated_var, &related_signal.field_path);
+                                    }
+                                }
+                            }
+                        }
+                        cycle_changes.clear();
                     }
-                    rising_edge_found = false;
-                    cycle_changes.clear();
                 }
                 Command::ChangeVector(i, v) if i == clock => {
                     let new_clock_val  = v.get(0).unwrap();

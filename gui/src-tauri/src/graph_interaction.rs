@@ -204,7 +204,7 @@ pub fn get_partial_graph(state: State<'_, RwLock<AppState>>, range_begin: u64, r
 
         for timestamp in range_begin..=range_end {
             let default_vec = vec![];
-            let node_indices = graph.time_to_nodes.get(&timestamp).unwrap_or(&default_vec);
+            let node_indices = graph.time_to_nodes.get(&(timestamp as i64)).unwrap_or(&default_vec);
             for idx in node_indices {
                 let node = &graph.dpdg.vertices[*idx];
                 let edges = graph.dep_to_edges.get(&(*idx as u32));

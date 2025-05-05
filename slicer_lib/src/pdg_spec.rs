@@ -153,7 +153,7 @@ pub struct ExportablePDGNode {
     pub clocked: bool,
     pub related_signal: Option<PDGSpecRelatedSignal>,
     pub sim_data: Option<String>,
-    pub timestamp: u64,
+    pub timestamp: i64,
     pub is_chisel_assignment: bool
 }
 
