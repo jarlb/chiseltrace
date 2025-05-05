@@ -79,7 +79,7 @@ impl GraphBuilder {
         Ok(GraphBuilder { reader: vcd_reader, pdg, linked_nodes: linked, pred_values: HashMap::new(), pred_idx_to_id: vec![], dependency_state: HashMap::new() })
     }
 
-    pub fn process(&mut self, criterion: &CriterionType, max_timesteps: Option<u64>) -> Result<ExportablePDG> {
+    pub fn process(&mut self, criterion: &CriterionType, max_timesteps: Option<u64>) -> Result<Rc<RefCell<DynPDGNode>>> {
         self.init_predicates()?;
 
         let mut eof_reached = false;
@@ -213,9 +213,8 @@ impl GraphBuilder {
             })
             .max_by_key(|n| n.borrow().timestamp)
             .ok_or(Error::StatementLookupError("Criterion not found in DPDG".into()))?;
-
-        println!("Making pdg exportable");
-        Ok(dpdg_make_exportable(exported_node.clone()))
+        
+        Ok(exported_node.clone())
     }
 
     fn init_predicates(&mut self) -> Result<()> {

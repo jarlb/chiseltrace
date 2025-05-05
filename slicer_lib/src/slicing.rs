@@ -1,8 +1,10 @@
+use std::collections::HashSet;
 use std::path::Path;
 use std::{cell::RefCell, collections::HashMap, fs::File, io::BufWriter, rc::Rc};
 use anyhow::{anyhow, Result};
 use crate::errors::Error;
-use crate::pdg_spec::{CFGSpecStatement, LinkedPDGNode, PDGSpec, PDGSpecEdge};
+use crate::graphbuilder::DynPDGNode;
+use crate::pdg_spec::{CFGSpecStatement, ExportablePDG, ExportableSlice, LinkedPDGNode, PDGSpec, PDGSpecEdge};
 
 /// Function that takes in a PDG in Spec form (i.e. separate vertices and edge lists, linked by indices)
 /// and produces a list of vertices that refer to their dependence nodes.
@@ -153,6 +155,38 @@ pub fn write_pdg<P: AsRef<Path>>(pdg: &PDGSpec, path: P) -> Result<()> {
     let writer = BufWriter::new(output_file);
 
     serde_json::to_writer_pretty(writer, pdg)?;
+    Ok(())
+}
+
+pub fn write_static_slice<P: AsRef<Path>>(pdg: &ExportablePDG, path: P) -> Result<()> {
+    let output_file = File::create(path)?;
+    let writer = BufWriter::new(output_file);
+
+    serde_json::to_writer_pretty(writer, &ExportableSlice { statements: pdg.vertices.iter().map(|x| x.clone().into()).collect::<Vec<_>>() })?;
+    Ok(())
+}
+
+pub fn write_dynamic_slice<P: AsRef<Path>>(pdg: &Rc<RefCell<DynPDGNode>>, path: P) -> Result<()> {
+    let mut unique_statements = HashSet::new();
+    let mut stack = vec![pdg.clone()];
+    let mut scanned_nodes = vec![];
+    while let Some(node) = stack.pop() {
+        stack.extend(node.borrow().dependencies.iter()
+            .filter_map(|x| {
+                if scanned_nodes.iter().any(|n| Rc::ptr_eq(n, &x.0)) {
+                    None
+                } else {
+                    Some(x.0.clone())
+                }
+        }));
+        scanned_nodes.push(node.clone());
+        unique_statements.insert(node.borrow().inner.clone());
+    }
+
+    let output_file = File::create(path)?;
+    let writer = BufWriter::new(output_file);
+    serde_json::to_writer_pretty(writer, &ExportableSlice { statements: unique_statements.into_iter().map(|x| x.into()).collect::<Vec<_>>() })?;
+
     Ok(())
 }
 

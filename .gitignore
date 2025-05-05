@@ -3,3 +3,4 @@
 *.json
 *.vcd
 !/gui/**/*.json
+*.zip

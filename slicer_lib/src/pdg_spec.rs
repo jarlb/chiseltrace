@@ -120,6 +120,30 @@ impl From<PDGSpec> for ExportablePDG {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct ExportableSlice {
+    pub statements: Vec<ExportableSliceStatement>
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
+pub struct ExportableSliceStatement {
+    pub file: String,
+    pub line: u32,
+    pub char: u32
+}
+
+impl From<ExportablePDGNode> for ExportableSliceStatement {
+    fn from(value: ExportablePDGNode) -> Self {
+        ExportableSliceStatement { file: value.file, line: value.line, char: value.char }
+    }
+}
+
+impl From<PDGSpecNode> for ExportableSliceStatement {
+    fn from(value: PDGSpecNode) -> Self {
+        ExportableSliceStatement { file: value.file, line: value.line, char: value.char }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ExportablePDGNode {
     pub file: String,
     pub line: u32,

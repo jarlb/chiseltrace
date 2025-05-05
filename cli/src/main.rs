@@ -1,7 +1,7 @@
 use std::{fs::{read_to_string, File}, io::BufWriter, path::Path};
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use program_slicer_lib::{conversion::pdg_convert_to_source, slicing::{pdg_slice, write_pdg}};
+use program_slicer_lib::{conversion::{dpdg_make_exportable, pdg_convert_to_source}, slicing::{pdg_slice, write_dynamic_slice, write_pdg, write_static_slice}};
 use program_slicer_lib::graphbuilder::{GraphBuilder, CriterionType};
 use program_slicer_lib::pdg_spec::PDGSpec;
 use program_slicer_lib::sim_data_injection::TywavesInterface;
@@ -32,6 +32,14 @@ enum Commands {
         /// The statement that should be used for the program slicing.
         slice_criterion: String,
     },
+    DynSlice {
+        /// The path to the input PDG
+        pdg_path: String,
+        /// The path the the VCD file
+        vcd_path: String,
+        /// The statement that should be used for the program slicing.
+        slice_criterion: String,
+    },
     /// Perform a conversion from FIRRTL PDG to CHISEL PDG operation.
     Convert {
         /// The path to the input PDG
@@ -44,7 +52,8 @@ fn main() -> Result<()> {
     let argpath = match &args.command {
         Commands::Slice { path, .. } => path,
         Commands::Convert { path } => path,
-        Commands::DynPDG { pdg_path, .. } => pdg_path
+        Commands::DynPDG { pdg_path, .. } => pdg_path,
+        Commands::DynSlice { pdg_path, ..} => pdg_path
     };
     let buf = read_to_string(argpath)?;
     let mut deser = serde_json::Deserializer::from_str(buf.as_str());
@@ -55,7 +64,8 @@ fn main() -> Result<()> {
     match &args.command {
         Commands::Slice { slice_criterion, .. } => {
             let sliced = pdg_slice(pdg_raw, slice_criterion)?;
-            write_pdg(&sliced, "out_pdg.json")?;
+            let converted = pdg_convert_to_source(sliced.into(), true);
+            write_static_slice(&converted, "out_pdg.json")?;
         },
         Commands::Convert {..} => {
             let converted = pdg_convert_to_source(pdg_raw.into(), true);
@@ -72,6 +82,9 @@ fn main() -> Result<()> {
             println!("Starting dynamic PDG building");
             let mut builder = GraphBuilder::new(vcd_path, vec!["TOP".into(), "svsimTestbench".into(), "dut".into()], sliced)?;
             let dpdg = builder.process(&CriterionType::Statement(slice_criterion.clone()), None)?;
+
+            println!("Making DPDG exportable");
+            let dpdg = dpdg_make_exportable(dpdg);
             
             println!("Converting to source representation");
             let mut converted_pdg = pdg_convert_to_source(dpdg, true);
@@ -93,6 +106,16 @@ fn main() -> Result<()> {
             serde_json::to_writer_pretty(writer, &converted_pdg)?;
 
             // println!("{:#?}", signal.create_val_repr(raw_val_vcd, render_fn));
+        }
+        Commands::DynSlice { pdg_path, vcd_path, slice_criterion } => {
+            let sliced  = pdg_raw;
+            // write_pdg(&sliced, "out_pdg.json")?;
+
+            println!("Starting dynamic PDG building");
+            let mut builder = GraphBuilder::new(vcd_path, vec!["TOP".into(), "svsimTestbench".into(), "dut".into()], sliced)?;
+            let dpdg = builder.process(&CriterionType::Statement(slice_criterion.clone()), None)?;
+
+            write_dynamic_slice(&dpdg, "dynslice.json")?;
         }
     }
 

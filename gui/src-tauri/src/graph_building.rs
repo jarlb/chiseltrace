@@ -1,6 +1,6 @@
 use std::{collections::{HashMap, HashSet}, fs::{read_to_string, File}, io::BufReader, sync::RwLock};
 
-use program_slicer_lib::{conversion::pdg_convert_to_source, graphbuilder::GraphBuilder, pdg_spec::PDGSpec, sim_data_injection::TywavesInterface, slicing::pdg_slice};
+use program_slicer_lib::{conversion::{dpdg_make_exportable, pdg_convert_to_source}, graphbuilder::GraphBuilder, pdg_spec::PDGSpec, sim_data_injection::TywavesInterface, slicing::pdg_slice};
 use serde::Deserialize;
 use tauri::State;
 use anyhow::Result;
@@ -38,6 +38,9 @@ pub async fn make_dpdg(state: State<'_, RwLock<AppState>>) -> Result<(), String>
         let dpdg = builder.process(&pdg_config.criterion, pdg_config.max_timesteps)?;
 
         println!("DPDG build complete");
+
+        let dpdg = dpdg_make_exportable(dpdg);
+        println!("Made DPDG exportable");
 
         // Convert to source language
         let mut converted_pdg = pdg_convert_to_source(dpdg, false);
