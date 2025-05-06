@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "dpdg_visualiser",
+  "productName": "chiseltrace",
   "version": "0.1.0",
-  "identifier": "com.dpdg_visualiser.app",
+  "identifier": "com.chiseltrace.app",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "dpdg_visualiser",
+        "title": "chiseltrace",
         "maximized": true,
         "width": 800,
         "height": 600

@@ -4,6 +4,6 @@
 use anyhow::Result;
 
 fn main() -> Result<()> {
-    dpdg_visualiser_lib::run()?;
+    chiseltrace_lib::run()?;
     Ok(())
 }
