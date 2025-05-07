@@ -81,7 +81,7 @@ fn main() -> Result<()> {
 
             println!("Starting dynamic PDG building");
             let mut builder = GraphBuilder::new(vcd_path, vec!["TOP".into(), "svsimTestbench".into(), "dut".into()], sliced)?;
-            let dpdg = builder.process(&CriterionType::Statement(slice_criterion.clone()), None)?;
+            let dpdg = builder.process(&CriterionType::Statement(slice_criterion.clone()), None, false)?;
 
             println!("Making DPDG exportable");
             let dpdg = dpdg_make_exportable(dpdg);
@@ -113,7 +113,7 @@ fn main() -> Result<()> {
 
             println!("Starting dynamic PDG building");
             let mut builder = GraphBuilder::new(vcd_path, vec!["TOP".into(), "svsimTestbench".into(), "dut".into()], sliced)?;
-            let dpdg = builder.process(&CriterionType::Statement(slice_criterion.clone()), None)?;
+            let dpdg = builder.process(&CriterionType::Statement(slice_criterion.clone()), None, false)?;
 
             write_dynamic_slice(&dpdg, "dynslice.json")?;
         }

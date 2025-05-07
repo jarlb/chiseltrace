@@ -21,7 +21,8 @@ pub struct PDGConfig {
     pub hgldd_path: PathBuf,
     pub top_module: String,
     pub extra_scopes: Vec<String>,
-    pub max_timesteps: Option<u64>
+    pub max_timesteps: Option<u64>,
+    pub data_only: bool
 }
 
 #[derive(Debug, Clone)]

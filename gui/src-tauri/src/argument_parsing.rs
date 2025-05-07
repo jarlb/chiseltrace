@@ -50,8 +50,11 @@ pub struct Args {
     #[clap(short, long, value_delimiter = ' ', num_args = 1..)]
     pub extra_scopes: Option<Vec<String>>,
 
-    #[arg(short, long)]
-    pub max_timesteps: Option<u64>
+    #[arg(long)]
+    pub max_timesteps: Option<u64>,
+
+    #[arg(long)]
+    pub data_only: Option<bool>
 }
 
 impl Args {

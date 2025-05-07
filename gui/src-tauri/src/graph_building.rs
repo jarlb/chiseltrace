@@ -35,7 +35,7 @@ pub async fn make_dpdg(state: State<'_, RwLock<AppState>>) -> Result<(), String>
 
         // Build the DPDG
         let mut builder = GraphBuilder::new(&pdg_config.vcd_path, pdg_config.extra_scopes.clone(), sliced)?;
-        let dpdg = builder.process(&pdg_config.criterion, pdg_config.max_timesteps.map(|t| t as i64))?;
+        let dpdg = builder.process(&pdg_config.criterion, pdg_config.max_timesteps.map(|t| t as i64), pdg_config.data_only)?;
 
         println!("DPDG build complete");
 

@@ -79,7 +79,7 @@ impl GraphBuilder {
         Ok(GraphBuilder { reader: vcd_reader, pdg, linked_nodes: linked, pred_values: HashMap::new(), pred_idx_to_id: vec![], dependency_state: HashMap::new() })
     }
 
-    pub fn process(&mut self, criterion: &CriterionType, max_timesteps: Option<i64>) -> Result<Rc<RefCell<DynPDGNode>>> {
+    pub fn process(&mut self, criterion: &CriterionType, max_timesteps: Option<i64>, data_only: bool) -> Result<Rc<RefCell<DynPDGNode>>> {
         self.init_predicates()?;
 
         let mut eof_reached = false;
@@ -154,6 +154,11 @@ impl GraphBuilder {
                             continue;
                         }
                     }
+
+                    if data_only && dep_edge.kind != PDGSpecEdgeKind::Data {
+                        continue;
+                    }
+
                     let conditions_satisfied = if let Some(conds) = &dep_edge.condition {
                         conds.probe_name.iter().zip(&conds.probe_value).all(|(probe, required_value)| {
                             // println!("Probe: {}, required: {}, actual: ", probe, required_value);
