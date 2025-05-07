@@ -209,15 +209,24 @@ impl GraphBuilder {
         // println!("Full graph: {:#?}", all_nodes[all_nodes.len()-1]);
         println!("Amount of nodes: {}", all_nodes.len());
 
-        let exported_node = all_nodes.iter()
-            .filter(|n| {
-                match criterion {
-                    CriterionType::Statement(c) => n.borrow().inner.name.eq(c),
-                    CriterionType::Signal(c) => n.borrow().inner.assigns_to.as_ref() == Some(c)
-                }
-            })
-            .max_by_key(|n| n.borrow().timestamp)
-            .ok_or(Error::StatementLookupError("Criterion not found in DPDG".into()))?;
+        // let exported_node = all_nodes.iter()
+        //     .filter(|n| {
+        //         match criterion {
+        //             CriterionType::Statement(c) => n.borrow().inner.name.eq(c),
+        //             CriterionType::Signal(c) => n.borrow().inner.assigns_to.as_ref() == Some(c)
+        //         }
+        //     })
+        //     .max_by_key(|n| n.borrow().timestamp)
+        //     .ok_or(Error::StatementLookupError("Criterion not found in DPDG".into()))?;
+            
+        let exported_node = match criterion {
+            CriterionType::Statement(c) => {
+                all_nodes.iter().filter(|n| n.borrow().inner.name.eq(c))
+                    .max_by_key(|n| n.borrow().timestamp)
+            }
+            // If we are looking for a signal, give the latest assignment.
+            CriterionType::Signal(c) => self.dependency_state.get(c)
+        }.ok_or(Error::StatementLookupError("Criterion not found in DPDG".into()))?;
         
         Ok(exported_node.clone())
     }
@@ -292,7 +301,12 @@ impl VcdReader {
             while let Some((prefix, item)) = stack.pop() {
                 match item {
                     vcd::ScopeItem::Scope(scope) => {
-                        stack.extend_from_slice(&scope.items.iter().map(|i| (prefix.to_string() + &scope.identifier, i)).collect::<Vec<_>>());
+                        let new_prefix = if prefix.is_empty() {
+                            scope.identifier.clone()
+                        } else {
+                            prefix.to_string() + "." + &scope.identifier
+                        };
+                        stack.extend_from_slice(&scope.items.iter().map(|i| (new_prefix.clone(), i)).collect::<Vec<_>>());
                     }
                     vcd::ScopeItem::Var(var) => {
                         // Probes may have the same IdCode if they are driven by the same value.
