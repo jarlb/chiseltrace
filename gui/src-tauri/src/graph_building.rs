@@ -1,4 +1,4 @@
-use std::{collections::{HashMap, HashSet}, fs::{read_to_string, File}, io::BufReader, sync::RwLock};
+use std::{collections::{HashMap, HashSet}, fs::{read_to_string, File}, io::BufReader, sync::RwLock, time::SystemTime};
 
 use program_slicer_lib::{conversion::{dpdg_make_exportable, pdg_convert_to_source}, graphbuilder::GraphBuilder, pdg_spec::PDGSpec, sim_data_injection::TywavesInterface, slicing::pdg_slice};
 use serde::Deserialize;
@@ -20,6 +20,8 @@ pub async fn make_dpdg(state: State<'_, RwLock<AppState>>) -> Result<(), String>
             anyhow::bail!("Tried building PDG before config was known.");
         };
         
+        let start_time = SystemTime::now();
+        let mut now = SystemTime::now();
         let reader = BufReader::new(File::open(&pdg_config.pdg_path)?);
 
         let mut deser = serde_json::Deserializer::from_reader(reader);
@@ -27,6 +29,9 @@ pub async fn make_dpdg(state: State<'_, RwLock<AppState>>) -> Result<(), String>
         //serde_json::from_str::<PDGSpec>(buf.as_str())?;
         let pdg_raw = PDGSpec::deserialize(&mut deser)?;
         let sliced = pdg_raw;
+
+        println!("PDG read: {}", now.elapsed().unwrap().as_millis());
+        now = SystemTime::now();
 
         println!("Read PDG from file");
 
@@ -37,14 +42,21 @@ pub async fn make_dpdg(state: State<'_, RwLock<AppState>>) -> Result<(), String>
         let mut builder = GraphBuilder::new(&pdg_config.vcd_path, pdg_config.extra_scopes.clone(), sliced)?;
         let dpdg = builder.process(&pdg_config.criterion, pdg_config.max_timesteps.map(|t| t as i64), pdg_config.data_only)?;
 
+        println!("DPDG build: {}", now.elapsed().unwrap().as_millis());
+        now = SystemTime::now();
         println!("DPDG build complete");
 
         let dpdg = dpdg_make_exportable(dpdg);
+
+        println!("Exportable: {}", now.elapsed().unwrap().as_millis());
+        now = SystemTime::now();
         println!("Made DPDG exportable");
 
         // Convert to source language
         let mut converted_pdg = pdg_convert_to_source(dpdg, false);
 
+        println!("Conversion: {}", now.elapsed().unwrap().as_millis());
+        now = SystemTime::now();
         println!("Converted to source representation");
 
         // Add simulation data
@@ -54,9 +66,13 @@ pub async fn make_dpdg(state: State<'_, RwLock<AppState>>) -> Result<(), String>
         println!("VCD rewrite done");
         tywaves.inject_sim_data(&mut converted_pdg, &tywaves_vcd_path)?;
 
+        println!("Tywaves: {}", now.elapsed().unwrap().as_millis());
+
         for v in &mut converted_pdg.vertices {
             v.timestamp += 1;
         }
+
+        println!("Total: {}", start_time.elapsed().unwrap().as_millis());
 
         //let converted_pdg = dpdg;
 
