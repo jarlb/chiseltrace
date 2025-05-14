@@ -28,7 +28,9 @@ pub struct PDGSpecNode {
     pub related_signal: Option<PDGSpecRelatedSignal>,
     pub assigns_to: Option<String>,
     pub is_chisel_statement: bool,
-    pub condition: Option<PDGSpecCondition>
+    pub condition: Option<PDGSpecCondition>,
+    #[serde(default)]
+    pub assign_delay: u32
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Hash, Eq)]

@@ -273,7 +273,9 @@ impl TywavesInterface {
                         }
                         rising_edge_found = false;
                         for (k,v) in &cycle_changes {
-                            let signals = &signal_mapping[k];
+                            let Some(signals) = signal_mapping.get(k) else {
+                                continue;
+                            };
                             for signal in signals {
                                 values_cache.insert(signal.clone(), v.to_string());
                             }
@@ -300,7 +302,9 @@ impl TywavesInterface {
                         // println!("{current_timestamp}");
                         // println!("{:#?}", cycle_changes);
                         for (k,v) in &cycle_changes {
-                            let signals = &signal_mapping[k];
+                            let Some(signals) = signal_mapping.get(k) else {
+                                continue;
+                            };
                             for signal in signals {
                                 values_cache.insert(signal.clone(), v.to_string());
                             }

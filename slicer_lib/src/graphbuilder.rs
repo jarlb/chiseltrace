@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::HashMap, fs::File, io::{self, BufReader}, path::Path, rc::Rc};
+use std::{cell::RefCell, collections::{BTreeMap, HashMap}, fs::File, io::{self, BufReader}, path::Path, rc::Rc};
 use serde::Serialize;
 use vcd::{Command as Command, IdCode};
 use anyhow::Result;
@@ -84,6 +84,9 @@ impl GraphBuilder {
 
         let mut eof_reached = false;
         let mut all_nodes = vec![];
+
+        let mut delayed_statement_buffer: Vec<(i64, u32)> = vec![];
+
         while !eof_reached && self.reader.current_time * 2 <= max_timesteps.unwrap_or(i64::MAX) {
             let (c, eof) = self.reader.read_cycle_changes()?;
             let corrected_timestamp = self.reader.current_time - 1; // Time starts at zero
@@ -92,6 +95,29 @@ impl GraphBuilder {
             let mut new_reg_providers: HashMap<String, Rc<RefCell<DynPDGNode>>> = HashMap::new();
             let mut controlflow_providers: HashMap<PDGSpecNode, Rc<RefCell<DynPDGNode>>> = HashMap::new();
             let mut new_nodes = vec![];
+
+            // Get the ready delayed statements
+            let mut ready_statements = vec![];
+            delayed_statement_buffer = delayed_statement_buffer.into_iter().filter(|(t, stmt)| {
+                if *t == corrected_timestamp {
+                    ready_statements.push(*stmt);
+                    false
+                } else { true }
+            }).collect::<Vec<_>>();
+
+            // Determine the delayed statements -> sequential memory
+            let (mut activated_statements, delayed_statements): (Vec<_>, Vec<_>) = activated_statements.into_iter().partition(|stmt| {
+                let node = self.linked_nodes[*stmt as usize].borrow();
+                node.inner.assign_delay == 0
+            });
+
+            for del_stmt in delayed_statements {
+                let node = self.linked_nodes[del_stmt as usize].borrow();
+                delayed_statement_buffer.push((corrected_timestamp + node.inner.assign_delay as i64, del_stmt));
+            }
+
+            activated_statements.append(&mut ready_statements);
+
             for stmt in &activated_statements {
                 let node = self.linked_nodes[*stmt as usize].borrow();
                 // Without this fix, we get a situation where registers of timestamp x can depend on wires from timestamp x, which is clearly
