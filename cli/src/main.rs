@@ -29,8 +29,12 @@ enum Commands {
         pdg_path: String,
         /// The path the the VCD file
         vcd_path: String,
+        /// Path to the HGLDD directory
+        hgldd_path: String,
         /// The statement that should be used for the program slicing.
         slice_criterion: String,
+        /// Maximum amount of timesteps
+        max_timesteps: Option<u64>,
     },
     DynSlice {
         /// The path to the input PDG
@@ -40,7 +44,7 @@ enum Commands {
         /// The statement that should be used for the program slicing.
         slice_criterion: String,
     },
-    /// Perform a conversion from FIRRTL PDG to CHISEL PDG operation.
+    /// Perform a conversion from FIRRTL PDG to Chisel PDG operation.
     Convert {
         /// The path to the input PDG
         path: String,
@@ -74,14 +78,15 @@ fn main() -> Result<()> {
         
             serde_json::to_writer_pretty(writer, &converted)?;
         },
-        Commands::DynPDG { pdg_path:_, vcd_path, slice_criterion } => {
+        Commands::DynPDG { pdg_path:_, vcd_path, hgldd_path, slice_criterion, max_timesteps } => {
+            let max_timesteps = max_timesteps.map(|x| x as i64);
             // let sliced = pdg_slice(pdg_raw, slice_criterion)?;
             let sliced  = pdg_raw;
             // write_pdg(&sliced, "out_pdg.json")?;
 
             println!("Starting dynamic PDG building");
             let mut builder = GraphBuilder::new(vcd_path, vec!["TOP".into(), "svsimTestbench".into(), "dut".into()], sliced)?;
-            let dpdg = builder.process(&CriterionType::Statement(slice_criterion.clone()), None, false)?;
+            let dpdg = builder.process(&CriterionType::Statement(slice_criterion.clone()), max_timesteps, false)?;
 
             println!("Making DPDG exportable");
             let dpdg = dpdg_make_exportable(dpdg);
@@ -90,10 +95,10 @@ fn main() -> Result<()> {
             let mut converted_pdg = pdg_convert_to_source(dpdg, true);
 
             println!("Adding tywaves info");
-            let tywaves = TywavesInterface::new(Path::new("../resources/chiselwatt/hgldd"),
+            let tywaves = TywavesInterface::new(Path::new(hgldd_path),
                 vec!["TOP".into(), "svsimTestbench".into(), "dut".into()], &"Core".into())?;
             
-            let tywaves_vcd_path = tywaves.vcd_rewrite(Path::new("../resources/chiselwatt/trace.vcd"))?;
+            let tywaves_vcd_path = tywaves.vcd_rewrite(Path::new(vcd_path))?;
             println!("VCD rewritten");
             tywaves.inject_sim_data(&mut converted_pdg, &tywaves_vcd_path)?;
             // let signal = tywaves.find_signal(&["TOP".into(), "svsimTestbench".into(), "dut".into(), "regfile".into(), "pred_io_w_en".into()])?;
