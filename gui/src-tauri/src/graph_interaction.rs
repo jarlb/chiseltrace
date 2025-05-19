@@ -27,7 +27,9 @@ struct ViewerNode {
     shape: NodeShape,
     code: Option<String>,
     incoming: Vec<ViewerSignal>,
-    outgoing: Vec<ViewerSignal>
+    outgoing: Vec<ViewerSignal>,
+    file: String,
+    line: u32
 }
 
 #[derive(Debug, Clone, Serialize, Hash, PartialEq, Eq)]
@@ -221,7 +223,9 @@ pub fn get_partial_graph(state: State<'_, RwLock<AppState>>, range_begin: u64, r
                     shape: NodeShape::from(node.kind),
                     code: graph.source_files.get(&node.file).map(|v| v.get(node.line as usize - 1).map(|l| l.clone())).flatten(),
                     incoming,
-                    outgoing
+                    outgoing,
+                    file: node.file.clone(),
+                    line: node.line
                 });
                 if let Some(edges) = edges {
                     for edge in edges {
@@ -247,7 +251,9 @@ pub fn get_partial_graph(state: State<'_, RwLock<AppState>>, range_begin: u64, r
                                 shape: NodeShape::from(destination.kind),
                                 code: graph.source_files.get(&destination.file).map(|v| v.get(destination.line as usize - 1).map(|l| l.clone())).flatten(),
                                 incoming,
-                                outgoing
+                                outgoing,
+                                file: node.file.clone(),
+                                line: node.line
                             });
                             viewer_graph.edges.push(ViewerEdge {
                                 from: edge.from as u64,

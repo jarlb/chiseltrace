@@ -87,6 +87,8 @@ impl GraphBuilder {
 
         let mut delayed_statement_buffer: Vec<(i64, u32)> = vec![];
 
+        let mut dependency_state_snapshots: HashMap<i64, (HashMap<String, Rc<RefCell<DynPDGNode>>>, HashMap<String, u64>)> = HashMap::new();
+
         while !eof_reached && self.reader.current_time * 2 <= max_timesteps.unwrap_or(i64::MAX) {
             let (c, eof) = self.reader.read_cycle_changes()?;
             let corrected_timestamp = self.reader.current_time - 1; // Time starts at zero
@@ -111,9 +113,11 @@ impl GraphBuilder {
                 node.inner.assign_delay == 0
             });
 
+            let mut delayed_statements_present = false;
             for del_stmt in delayed_statements {
                 let node = self.linked_nodes[del_stmt as usize].borrow();
                 delayed_statement_buffer.push((corrected_timestamp + node.inner.assign_delay as i64, del_stmt));
+                delayed_statements_present = true;
             }
 
             activated_statements.append(&mut ready_statements);
@@ -166,6 +170,14 @@ impl GraphBuilder {
                 }
             }
             for (node, dpdg_node) in &new_nodes {
+                // Account for delayed assignments
+                let node_delay = node.borrow().inner.assign_delay;
+                let (dep_state, probe_vals) = if node_delay > 0 {
+                    let x = &dependency_state_snapshots[&(corrected_timestamp - node_delay as i64)];
+                    (&x.0, &x.1)
+                } else {
+                    (&self.dependency_state, &self.reader.probe_values)
+                };
                 // A statement may depend on multiple statements that provide the same symbol.
                 // We only want to process the symbol once, otherwise we get duplicate dependencies.
                 let mut deps_processed = vec![];
@@ -189,7 +201,7 @@ impl GraphBuilder {
                         conds.probe_name.iter().zip(&conds.probe_value).all(|(probe, required_value)| {
                             // println!("Probe: {}, required: {}, actual: ", probe, required_value);
                             // println!("{:?}", self.reader.probe_values);
-                            if let Some(current_probe_val) = self.reader.probe_values.get(probe) {
+                            if let Some(current_probe_val) = probe_vals.get(probe) {
                                 *required_value == *current_probe_val
                             } else {
                                 false
@@ -202,8 +214,14 @@ impl GraphBuilder {
                     if conditions_satisfied {
                         match dep_edge.kind {
                             PDGSpecEdgeKind::Data | PDGSpecEdgeKind::Index  => {
+                                // Data dependencies should not be resolved using snapshotted dependencies.
+                                let dep_state = if dep_edge.kind == PDGSpecEdgeKind::Data {
+                                    &self.dependency_state
+                                } else {
+                                    dep_state
+                                };
                                 if let Some(dep_str) = &dep_node.borrow().inner.assigns_to {
-                                    if let Some(dep) = self.dependency_state.get(dep_str) {
+                                    if let Some(dep) = dep_state.get(dep_str) {
                                         dpdg_node.borrow_mut().dependencies.push((dep.clone(), dep_edge.kind));
                                     }
                                     deps_processed.push(dep_str.clone());
@@ -220,8 +238,19 @@ impl GraphBuilder {
                 }
             }
 
+            // If there are delayed statements, we need to save a snapshot of the dependencies, because
+            // control flow and index flow need to be of the current timestamp, while the data flow is actually not (for SRAM at least).
+            if delayed_statements_present {
+                dependency_state_snapshots.insert(corrected_timestamp, (self.dependency_state.clone(), self.reader.probe_values.clone()));
+            }
+
             for (_,n) in new_nodes {
-                all_nodes.push(n);
+                 if match criterion {
+                    CriterionType::Statement(c) => n.borrow().inner.name.eq(c),
+                    CriterionType::Signal(c) => n.borrow().inner.assigns_to.as_ref().map_or(false, |s| s.eq(c))
+                } {
+                    all_nodes.push(n);
+                }
             }
             for (k,v) in new_reg_providers {
                 self.dependency_state.insert(k, v);

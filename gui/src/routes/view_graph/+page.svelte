@@ -37,6 +37,8 @@
     code: string | null;
     incoming: Signal[];
     outgoing: Signal[];
+    file: string,
+    line: number
   }
 
   interface ViewerGraph {
@@ -338,6 +340,7 @@
       {#if hoveredNode}
       <div class="node-tooltip" style={`left: ${tooltipPosition.x}px; top: ${tooltipPosition.y}px`}>
         <h3>{hoveredNode.label}</h3>
+        <p>{hoveredNode.file}:{hoveredNode.line}</p>
         {#if hoveredNode.code}
           <CodeBlock code={hoveredNode.code}></CodeBlock>
         {/if}

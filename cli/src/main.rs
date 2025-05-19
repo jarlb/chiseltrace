@@ -1,4 +1,4 @@
-use std::{fs::{read_to_string, File}, io::BufWriter, path::Path};
+use std::{collections::HashSet, fs::{read_to_string, File}, io::BufWriter, path::Path};
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use program_slicer_lib::{conversion::{dpdg_make_exportable, pdg_convert_to_source}, slicing::{pdg_slice, write_dynamic_slice, write_pdg, write_static_slice}};
@@ -36,6 +36,7 @@ enum Commands {
         /// Maximum amount of timesteps
         max_timesteps: Option<u64>,
     },
+    
     DynSlice {
         /// The path to the input PDG
         pdg_path: String,
@@ -86,7 +87,7 @@ fn main() -> Result<()> {
 
             println!("Starting dynamic PDG building");
             let mut builder = GraphBuilder::new(vcd_path, vec!["TOP".into(), "svsimTestbench".into(), "dut".into()], sliced)?;
-            let dpdg = builder.process(&CriterionType::Statement(slice_criterion.clone()), max_timesteps, false)?;
+            let dpdg = builder.process(&CriterionType::Signal(slice_criterion.clone()), max_timesteps, false)?;
 
             println!("Making DPDG exportable");
             let dpdg = dpdg_make_exportable(dpdg);
@@ -104,6 +105,13 @@ fn main() -> Result<()> {
             // let signal = tywaves.find_signal(&["TOP".into(), "svsimTestbench".into(), "dut".into(), "regfile".into(), "pred_io_w_en".into()])?;
             // println!("Translated variable: {:#?}", tywaves.translate_variable(&signal, &"0".repeat(1))?);
 
+            let mut lines = HashSet::new();
+            for vert in &converted_pdg.vertices {
+                if vert.timestamp >= 80 {
+                    lines.insert((vert.file.clone(), vert.line));
+                }
+            }
+            println!("Unique source lines in DPDG: {}", lines.len());
             println!("Num verts: {}, num edges: {}", converted_pdg.vertices.len(), converted_pdg.edges.len());
     
             let f = File::create("dynpdg.json")?;
