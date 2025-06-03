@@ -20,7 +20,8 @@ struct VcdReader {
     extra_scopes: Vec<String>,
     header: vcd::Header,
     clock: vcd::IdCode,
-    _reset: vcd::IdCode,
+    reset: vcd::IdCode,
+    reset_val: vcd::Value,
     current_time: i64,
     clock_val: vcd::Value,
     changes_buffer: Vec<ValueChange>,
@@ -151,7 +152,7 @@ impl GraphBuilder {
                             if node.inner.kind == PDGSpecNodeKind::DataDefinition {
                                 // println!("Register init found");
                                 // Handle register resets.
-                                if corrected_timestamp == 0 {
+                                if corrected_timestamp == 0 || self.reader.reset_val == vcd::Value::V1 {
                                     // println!("Register with reset: {:?}", node.inner.name);
                                     dpdg_node.borrow_mut().timestamp -= 1;
                                     self.dependency_state.insert(symb.clone(), dpdg_node.clone());
@@ -341,11 +342,11 @@ impl VcdReader {
         reset_path.push("reset".into());
 
         let clock = header.find_var(&clock_path).ok_or(Error::ClockNotFoundError)?.code;
-        let _reset = header.find_var(&reset_path).ok_or(Error::ClockNotFoundError)?.code;
+        let reset = header.find_var(&reset_path).ok_or(Error::ClockNotFoundError)?.code;
 
         let probes = Self::find_probes(&header, &extra_scopes);
         
-        Ok(VcdReader { parser, extra_scopes, header, clock, _reset, current_time: 0, clock_val: vcd::Value::X, changes_buffer: vec![], probes, probe_values: HashMap::new(), probe_change_buffer: vec![] })
+        Ok(VcdReader { parser, extra_scopes, header, clock, reset, reset_val: vcd::Value::X, current_time: 0, clock_val: vcd::Value::X, changes_buffer: vec![], probes, probe_values: HashMap::new(), probe_change_buffer: vec![] })
     }
 
     fn find_probes(header: &vcd::Header, root_scope: &[String]) -> HashMap<IdCode, Vec<String>> {
@@ -419,6 +420,9 @@ impl VcdReader {
                         rising_edge_found = true;
                     }
                     self.clock_val = v;
+                }
+                Command::ChangeScalar(i, v) if i == self.reset => {
+                    self.reset_val = v;
                 }
                 Command::ChangeScalar(i, v) => {
                     // println!("Change in {:?}: {v}", i);
