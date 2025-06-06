@@ -10,8 +10,6 @@ pub fn pdg_convert_to_source(pdg: ExportablePDG, verbose_name: bool, is_dpdg: bo
     // For example, also signals of type Bundle have the same source mapping to the definition of the entire bundle.
     // This will cause them to get grouped, which may not be desired.
 
-    println!("Conversion phase started. N verts: {}, N edges: {}", pdg.vertices.len(), pdg.edges.len());
-    let mut now = Instant::now();
     // First step is to make groups of vertices.
     let mut grouped_nodes: HashMap<(String, u32, i64), Vec<(ExportablePDGNode, usize)>> = HashMap::new();
     for (i, node) in pdg.vertices.iter().enumerate() {
@@ -23,8 +21,6 @@ pub fn pdg_convert_to_source(pdg: ExportablePDG, verbose_name: bool, is_dpdg: bo
         grouped_nodes.entry((node.file.clone(), node.line, group_timestamp)).or_default().push((node.clone(), i));
     }
 
-    println!("Grouping took: {} ms", now.elapsed().as_millis());
-    now = Instant::now();
 
     // TODO: the bug comes from the fact that the timestamp is saturated to 0, so the grouper tries to group the initial value wire
     // with other t=1 nodes, but there is no vertex reachability on the same timestamp, so it doesn't group properly.
@@ -69,8 +65,6 @@ pub fn pdg_convert_to_source(pdg: ExportablePDG, verbose_name: bool, is_dpdg: bo
         } else { vec![] }
     }).collect::<Vec<_>>();
 
-    println!("Edge redirection took: {} ms", now.elapsed().as_millis());
-    now = Instant::now();
 
     // Same thing here: filtering explodes time complexity, replace with HashMap
     let mut edges_by_to: HashMap<u32, Vec<_>> = HashMap::new();
@@ -127,10 +121,6 @@ pub fn pdg_convert_to_source(pdg: ExportablePDG, verbose_name: bool, is_dpdg: bo
         }
         groups
     }).collect::<Vec<_>>(); 
-
-    println!("Num groups: {}", groups.len());
-    println!("Vertex reachability took: {} ms", now.elapsed().as_millis());
-    now = Instant::now();
 
     // Map the old vertex indices to the newly grouped ones.
     let edgemap = groups.iter().enumerate().flat_map(|(new_i, g)| {
@@ -197,9 +187,6 @@ pub fn pdg_convert_to_source(pdg: ExportablePDG, verbose_name: bool, is_dpdg: bo
         }
     });
 
-    println!("Self dependency took: {} ms", now.elapsed().as_millis());
-    now = Instant::now();
-
     let new_verts = groups.iter().map(|g| {
         let contains_data = g.iter().any(|(v,_)| v.kind == PDGSpecNodeKind::DataDefinition || v.kind == PDGSpecNodeKind::Connection);
         let contains_cond = g.iter().any(|(v,_)| v.kind == PDGSpecNodeKind::ControlFlow);
@@ -235,9 +222,6 @@ pub fn pdg_convert_to_source(pdg: ExportablePDG, verbose_name: bool, is_dpdg: bo
         ExportablePDGNode {name: node_name, kind: vert_kind, ..v0.clone()}
     }).collect::<Vec<_>>();
 
-    println!("Conversion took: {} ms", now.elapsed().as_millis());
-    now = Instant::now();
-
     let merged_edges = if is_dpdg {
         outgoing_edges.map(|e| {
             // Some edges may be unjustly marked as non-clocked. We need to restore them
@@ -251,9 +235,6 @@ pub fn pdg_convert_to_source(pdg: ExportablePDG, verbose_name: bool, is_dpdg: bo
         })  
         .unique().collect::<Vec<_>>()
     };
-
-    println!("Edging took: {} ms", now.elapsed().as_millis());
-    now = Instant::now();
 
     // There is one final problem: some constructs, such as lookup tables may generate an enormous amount of nodes.
     // Most of these have been merged at this point, but there may still be some that are not. These nodes are
@@ -309,8 +290,6 @@ pub fn pdg_convert_to_source(pdg: ExportablePDG, verbose_name: bool, is_dpdg: bo
             None
         }
     }).collect::<Vec<_>>();
-
-    println!("Pruning took: {} ms", now.elapsed().as_millis());
 
     ExportablePDG {
         vertices: pruned_verts,
