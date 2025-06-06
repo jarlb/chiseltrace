@@ -53,7 +53,7 @@ pub async fn make_dpdg(state: State<'_, RwLock<AppState>>) -> Result<(), String>
         println!("Made DPDG exportable");
 
         // Convert to source language
-        let mut converted_pdg = pdg_convert_to_source(dpdg, false);
+        let mut converted_pdg = pdg_convert_to_source(dpdg, false, true);
 
         println!("Conversion: {}", now.elapsed().unwrap().as_millis());
         now = SystemTime::now();

@@ -1,8 +1,8 @@
-use std::{cell::RefCell, collections::{BTreeMap, HashMap, HashSet}, rc::Rc};
+use std::{cell::RefCell, collections::{BTreeMap, HashMap, HashSet}, rc::Rc, time::Instant};
 use itertools::Itertools;
 use crate::{graphbuilder::DynPDGNode, pdg_spec::{ExportablePDG, ExportablePDGEdge, ExportablePDGNode, PDGSpecEdgeKind, PDGSpecNodeKind}};
 
-pub fn pdg_convert_to_source(pdg: ExportablePDG, verbose_name: bool) -> ExportablePDG {
+pub fn pdg_convert_to_source(pdg: ExportablePDG, verbose_name: bool, is_dpdg: bool) -> ExportablePDG {
     // Here, we convert the PDG from FIRRTL representation to source representation.
     // The only source information that is available is the source file and line mapping (TODO: ALSO CHECK THE CHARACTER INDEX!!)
     // Based on this, we can group nodes that belong to the same source statement. One issue is that
@@ -10,6 +10,8 @@ pub fn pdg_convert_to_source(pdg: ExportablePDG, verbose_name: bool) -> Exportab
     // For example, also signals of type Bundle have the same source mapping to the definition of the entire bundle.
     // This will cause them to get grouped, which may not be desired.
 
+    println!("Conversion phase started. N verts: {}, N edges: {}", pdg.vertices.len(), pdg.edges.len());
+    let mut now = Instant::now();
     // First step is to make groups of vertices.
     let mut grouped_nodes: HashMap<(String, u32, i64), Vec<(ExportablePDGNode, usize)>> = HashMap::new();
     for (i, node) in pdg.vertices.iter().enumerate() {
@@ -21,10 +23,22 @@ pub fn pdg_convert_to_source(pdg: ExportablePDG, verbose_name: bool) -> Exportab
         grouped_nodes.entry((node.file.clone(), node.line, group_timestamp)).or_default().push((node.clone(), i));
     }
 
+    println!("Grouping took: {} ms", now.elapsed().as_millis());
+    now = Instant::now();
+
     // TODO: the bug comes from the fact that the timestamp is saturated to 0, so the grouper tries to group the initial value wire
     // with other t=1 nodes, but there is no vertex reachability on the same timestamp, so it doesn't group properly.
     // The solution would be to switch to i64 for timestamps (bad idea), or deploy a hotfix that would scan for non-chisel nodes at group time 1,
     // then put them on group time 0 (also not great)
+
+    // Performance optimization: Pre-compute mapping between edge.from and a list of edges.
+    // It used to be pdg.edges.iter().filter(|r_e| r_e.from == traversed_edge.to && r_e.kind == PDGSpecEdgeKind::Data).cloned()).
+    // This is wildly inefficient and causes O(N^2) complexity. By pre-computing the filter using a hashmap, we reduce to O(N)
+
+    let mut edges_by_from: HashMap<u32, Vec<_>> = HashMap::new();
+    for edge in &pdg.edges {
+        edges_by_from.entry(edge.from).and_modify(|x| x.push(edge)).or_insert(vec![edge]);
+    }
 
     // Redirect all Index edges. The probes will be removed in the next step
     let new_edges = pdg.edges.iter().flat_map(|e| {
@@ -33,8 +47,14 @@ pub fn pdg_convert_to_source(pdg: ExportablePDG, verbose_name: bool) -> Exportab
             let mut stack = vec![e];
             let mut replacement_edges= vec![];
             while let Some(traversed_edge) = stack.pop() {
-                replacement_edges.extend(pdg.edges.iter().filter(|r_e| r_e.from == traversed_edge.to && r_e.kind == PDGSpecEdgeKind::Data).cloned());
-                stack.extend(pdg.edges.iter().filter(|r_e| r_e.from == traversed_edge.to && r_e.kind == PDGSpecEdgeKind::Index));
+                // We use a stack graph traversal because a probe node may itself have an index dependency. If that is the case,
+                // we need to squash them
+                let Some(r_e) = edges_by_from.get(&traversed_edge.to) else {
+                    continue;
+                };
+
+                replacement_edges.extend(r_e.iter().filter(|r_e| r_e.kind == PDGSpecEdgeKind::Data).map(|x| *x).cloned());
+                stack.extend(r_e.iter().filter(|r_e| r_e.kind == PDGSpecEdgeKind::Index));
             }
             for r_e in &mut replacement_edges {
                 r_e.from = e.from;
@@ -44,11 +64,22 @@ pub fn pdg_convert_to_source(pdg: ExportablePDG, verbose_name: bool) -> Exportab
             // println!("{:#?}", replacement_edges);
             replacement_edges
         } else if !pdg.vertices[e.from as usize].name.starts_with("defnode_probe") { // Should definitely be replaced in the future
+            // Filter away edges that come from a probe node
             vec![e.clone()]
         } else { vec![] }
     }).collect::<Vec<_>>();
 
-    // println!("{:#?}", new_edges);
+    println!("Edge redirection took: {} ms", now.elapsed().as_millis());
+    now = Instant::now();
+
+    // Same thing here: filtering explodes time complexity, replace with HashMap
+    let mut edges_by_to: HashMap<u32, Vec<_>> = HashMap::new();
+    edges_by_from.clear();
+    for edge in &new_edges {
+        edges_by_from.entry(edge.from).and_modify(|x| x.push(edge)).or_insert(vec![edge]);
+        edges_by_to.entry(edge.to).and_modify(|x| x.push(edge)).or_insert(vec![edge]);
+    }
+
 
     // For every group, check vertex reachability within the group and split if necessary.
     // This is required for split compound signals. This code is probably real slow, optimise as needed
@@ -59,8 +90,25 @@ pub fn pdg_convert_to_source(pdg: ExportablePDG, verbose_name: bool) -> Exportab
             let mut stack = vec![(current_node.1, current_node.0)];
             let mut current_group = vec![];
             while let Some((visited_node, visited_idx)) = stack.pop() {
-                let to_add = new_edges.iter().filter(|e| 
-                    (e.to == visited_idx as u32 || e.from == visited_idx as u32) && e.kind != PDGSpecEdgeKind::Index);
+
+                // let to_add = new_edges.iter().filter(|e| 
+                //     (e.to == visited_idx as u32 || e.from == visited_idx as u32) && e.kind != PDGSpecEdgeKind::Index);
+                // let to_add = edges_by_from.get(&(visited_idx as u32)).into_iter().flatten().chain(
+                //     edges_by_to.get(&(visited_idx as u32)).into_iter().flatten()
+                // ).filter(|e| e.kind != PDGSpecEdgeKind::Index);
+
+                let to_add = edges_by_from
+                    .get(&(visited_idx as u32))
+                    .into_iter()
+                    .flatten()
+                    .chain(
+                        edges_by_to.get(&(visited_idx as u32))
+                        .into_iter()
+                        .flatten()
+                        .filter(|x| x.from != x.to) // Do not process self-referring edges twice
+                    )
+                    .filter(|e| e.kind != PDGSpecEdgeKind::Index);
+
                 for edge in to_add {
                     if let Some(x) = grouped_nodes.remove(&(edge.from as usize)) {
                         stack.push((x, edge.from as usize));
@@ -80,6 +128,10 @@ pub fn pdg_convert_to_source(pdg: ExportablePDG, verbose_name: bool) -> Exportab
         groups
     }).collect::<Vec<_>>(); 
 
+    println!("Num groups: {}", groups.len());
+    println!("Vertex reachability took: {} ms", now.elapsed().as_millis());
+    now = Instant::now();
+
     // Map the old vertex indices to the newly grouped ones.
     let edgemap = groups.iter().enumerate().flat_map(|(new_i, g)| {
         let own_indices = g.iter().map(|v| v.1); // Indices are guaranteed to be unique
@@ -94,8 +146,9 @@ pub fn pdg_convert_to_source(pdg: ExportablePDG, verbose_name: bool) -> Exportab
         .filter(|e| {
         // If both to and from point to the same group, remove the edge.
         e.to != e.from
-    }).unique();
+    });
 
+    // This can only occur when the PDG being converted is a static PDG. The DPDG is a DAG, so this does not happen
     let self_dependencies = groups.iter().filter_map(|g| {
         let own_index = g[0].1 as u32;
         // Simple DFS to find if there is a clocked cycle in the group
@@ -144,6 +197,9 @@ pub fn pdg_convert_to_source(pdg: ExportablePDG, verbose_name: bool) -> Exportab
         }
     });
 
+    println!("Self dependency took: {} ms", now.elapsed().as_millis());
+    now = Instant::now();
+
     let new_verts = groups.iter().map(|g| {
         let contains_data = g.iter().any(|(v,_)| v.kind == PDGSpecNodeKind::DataDefinition || v.kind == PDGSpecNodeKind::Connection);
         let contains_cond = g.iter().any(|(v,_)| v.kind == PDGSpecNodeKind::ControlFlow);
@@ -179,13 +235,25 @@ pub fn pdg_convert_to_source(pdg: ExportablePDG, verbose_name: bool) -> Exportab
         ExportablePDGNode {name: node_name, kind: vert_kind, ..v0.clone()}
     }).collect::<Vec<_>>();
 
-    let merged_edges = outgoing_edges.chain(self_dependencies)
-    .map(|e| {
-        // Some edges may be unjustly marked as non-clocked. We need to restore them
-        ExportablePDGEdge { clocked: new_verts[e.from as usize].clocked, ..e }
-    })  
-    .unique()
-    .collect::<Vec<_>>();
+    println!("Conversion took: {} ms", now.elapsed().as_millis());
+    now = Instant::now();
+
+    let merged_edges = if is_dpdg {
+        outgoing_edges.map(|e| {
+            // Some edges may be unjustly marked as non-clocked. We need to restore them
+            ExportablePDGEdge { clocked: new_verts[e.from as usize].clocked, ..e }
+        })  
+        .unique().collect::<Vec<_>>()
+    } else {
+        outgoing_edges.chain(self_dependencies).map(|e| {
+            // Some edges may be unjustly marked as non-clocked. We need to restore them
+            ExportablePDGEdge { clocked: new_verts[e.from as usize].clocked, ..e }
+        })  
+        .unique().collect::<Vec<_>>()
+    };
+
+    println!("Edging took: {} ms", now.elapsed().as_millis());
+    now = Instant::now();
 
     // There is one final problem: some constructs, such as lookup tables may generate an enormous amount of nodes.
     // Most of these have been merged at this point, but there may still be some that are not. These nodes are
@@ -242,6 +310,7 @@ pub fn pdg_convert_to_source(pdg: ExportablePDG, verbose_name: bool) -> Exportab
         }
     }).collect::<Vec<_>>();
 
+    println!("Pruning took: {} ms", now.elapsed().as_millis());
 
     ExportablePDG {
         vertices: pruned_verts,
@@ -249,37 +318,69 @@ pub fn pdg_convert_to_source(pdg: ExportablePDG, verbose_name: bool) -> Exportab
     }
 }
 
+/// A data structure that aids in converting linked graphs into 2 list representation
+struct LinkedNodeSet<T> {
+    nodes: Vec<Rc<T>>,
+    index_map: HashMap<*const T, usize>
+}
+
+impl<T> LinkedNodeSet<T> {
+    fn new() -> Self {
+        LinkedNodeSet { nodes: vec![], index_map: HashMap::new() }
+    }
+
+    fn find_position(&mut self, node: &Rc<T>) -> Option<usize> {
+        // We do a lookup in a hashmap based on the pointer. Without this, we would have to do linear search.
+        // That would be O(N^2) and explodes on larger graphs
+        self.index_map.get(&Rc::as_ptr(node)).copied()
+    }
+
+    fn push(&mut self, node: &Rc<T>) -> usize {
+        let ptr = Rc::as_ptr(node);
+        *self.index_map.entry(ptr).or_insert_with(|| {
+            let idx = self.nodes.len();
+            self.nodes.push(node.clone());
+            idx
+        })
+    }
+}
+
 pub fn dpdg_make_exportable(root: Rc<RefCell<DynPDGNode>>) -> ExportablePDG {
     let mut pdg = ExportablePDG::empty();
     // We keep track of the nodes we have seen so far. If we encounter a new node, we add it to the scanned nodes.
     // If we encounter a node that was previously scanned, we use that nodes index instead.
-    let mut scanned_nodes = vec![];
+    let mut scanned_nodes = LinkedNodeSet::new();
     let mut edges = HashSet::new();
 
     let mut stack = vec![root];
     while let Some(node) = stack.pop() {
-        let this_idx = if let Some((idx, _)) = scanned_nodes.iter().find_position(|el| Rc::ptr_eq(el, &node)) {
+        // let this_idx = if let Some((idx, _)) = scanned_nodes.iter().find_position(|el| Rc::ptr_eq(el, &node)) {
+        //     idx
+        // } else {
+        //     scanned_nodes.push(node.clone());
+        //     scanned_nodes.len()-1
+        // };
+
+        let this_idx = if let Some(idx) = scanned_nodes.find_position(&node) {
             idx
         } else {
-            scanned_nodes.push(node.clone());
-            scanned_nodes.len()-1
+            scanned_nodes.push(&node)
         };
 
         let borrowed_node = node.borrow();
         for (dep, kind) in &borrowed_node.dependencies {
-            let dep_idx = if let Some((idx, _)) = scanned_nodes.iter().find_position(|el| Rc::ptr_eq(el, dep)) {
+            let dep_idx = if let Some(idx) = scanned_nodes.find_position(&dep) {
                 idx
             } else {
                 stack.push(dep.clone());
-                scanned_nodes.push(dep.clone());
-                scanned_nodes.len()-1
+                scanned_nodes.push(&dep)
             };
             
             edges.insert(ExportablePDGEdge { from: this_idx as u32, to: dep_idx as u32, kind: *kind, clocked: borrowed_node.inner.clocked });
         }
     }
 
-    let pdg_verts = scanned_nodes.iter().map(|el| {
+    let pdg_verts = scanned_nodes.nodes.iter().map(|el| {
         let node = el.borrow();
         ExportablePDGNode { name: format!("{}", node.inner.name), timestamp: node.timestamp, ..node.inner.clone().into()}
     }).collect::<Vec<_>>();

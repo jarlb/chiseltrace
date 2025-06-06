@@ -69,11 +69,11 @@ fn main() -> Result<()> {
     match &args.command {
         Commands::Slice { slice_criterion, .. } => {
             let sliced = pdg_slice(pdg_raw, slice_criterion)?;
-            let converted = pdg_convert_to_source(sliced.into(), true);
+            let converted = pdg_convert_to_source(sliced.into(), true, false);
             write_static_slice(&converted, "out_pdg.json")?;
         },
         Commands::Convert {..} => {
-            let converted = pdg_convert_to_source(pdg_raw.into(), true);
+            let converted = pdg_convert_to_source(pdg_raw.into(), true, false);
             let output_file = File::create("out_chisel_pdg.json")?;
             let writer = BufWriter::new(output_file);
         
@@ -93,7 +93,7 @@ fn main() -> Result<()> {
             let dpdg = dpdg_make_exportable(dpdg);
             
             println!("Converting to source representation");
-            let mut converted_pdg = pdg_convert_to_source(dpdg, true);
+            let mut converted_pdg = pdg_convert_to_source(dpdg, true, true);
 
             println!("Adding tywaves info");
             let tywaves = TywavesInterface::new(Path::new(hgldd_path),
