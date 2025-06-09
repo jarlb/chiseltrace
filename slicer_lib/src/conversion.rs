@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::{BTreeMap, HashMap, HashSet}, rc::Rc, time::Instant};
+use std::{cell::RefCell, collections::{BTreeMap, HashMap, HashSet}, rc::Rc};
 use itertools::Itertools;
 use crate::{graphbuilder::DynPDGNode, pdg_spec::{ExportablePDG, ExportablePDGEdge, ExportablePDGNode, PDGSpecEdgeKind, PDGSpecNodeKind}};
 
@@ -310,7 +310,7 @@ impl<T> LinkedNodeSet<T> {
 
     fn find_position(&mut self, node: &Rc<T>) -> Option<usize> {
         // We do a lookup in a hashmap based on the pointer. Without this, we would have to do linear search.
-        // That would be O(N^2) and explodes on larger graphs
+        // That would be O(N^2) and explodes on larger graphs. We cannot just use a Set, because the ordering is important
         self.index_map.get(&Rc::as_ptr(node)).copied()
     }
 

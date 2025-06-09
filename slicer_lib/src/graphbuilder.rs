@@ -1,9 +1,9 @@
-use std::{cell::RefCell, collections::{BTreeMap, HashMap}, fs::File, io::{self, BufReader}, path::Path, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, fs::File, io::{self, BufReader}, path::Path, rc::Rc};
 use serde::Serialize;
 use vcd::{Command as Command, IdCode};
 use anyhow::Result;
 
-use crate::{conversion::dpdg_make_exportable, pdg_spec::{ExportablePDG, PDGSpec, PDGSpecEdge, PDGSpecEdgeKind, PDGSpecNode, PDGSpecNodeKind}, errors::Error};
+use crate::{pdg_spec::{PDGSpec, PDGSpecEdge, PDGSpecEdgeKind, PDGSpecNode, PDGSpecNodeKind}, errors::Error};
 
 pub struct GraphBuilder {
     reader: VcdReader,

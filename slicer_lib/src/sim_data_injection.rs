@@ -52,6 +52,11 @@ pub struct SubFieldTranslationResult {
     result: TranslationResult
 }
 
+// ================================ BEGIN COPIED CODE ================================ 
+// Original author: Raffaele Meloni
+// Date: 19 march 2024
+// License: EUPL 1.2
+
 #[inline]
 fn create_translation_result_name(variable: &Variable) -> String {
     format!("{}: {}", variable.high_level_info.type_name, variable.name)
@@ -226,6 +231,7 @@ impl TywavesInterface {
 
         Ok(result)
     }
+    // ================================ END COPIED CODE ================================ 
 
     // To inject simulation data into the graph:
     // We essentially want to associate simulation values with nodes.
