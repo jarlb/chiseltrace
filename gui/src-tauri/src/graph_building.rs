@@ -20,6 +20,7 @@ pub async fn make_dpdg(state: State<'_, RwLock<AppState>>) -> Result<(), String>
             anyhow::bail!("Tried building PDG before config was known.");
         };
         
+        for _ in 0..1 {
         let start_time = SystemTime::now();
         let mut now = SystemTime::now();
         let reader = BufReader::new(File::open(&pdg_config.pdg_path)?);
@@ -28,9 +29,10 @@ pub async fn make_dpdg(state: State<'_, RwLock<AppState>>) -> Result<(), String>
         deser.disable_recursion_limit();
         //serde_json::from_str::<PDGSpec>(buf.as_str())?;
         let pdg_raw = PDGSpec::deserialize(&mut deser)?;
+        println!("Processing PDG with {} nodes and {} edges", pdg_raw.vertices.len(), pdg_raw.edges.len());
         let sliced = pdg_raw;
 
-        println!("PDG read: {}", now.elapsed().unwrap().as_millis());
+        println!("PDG read: {}", (now.elapsed().unwrap().as_nanos() as f64) / 1e6);
         now = SystemTime::now();
 
         println!("Read PDG from file");
@@ -42,20 +44,20 @@ pub async fn make_dpdg(state: State<'_, RwLock<AppState>>) -> Result<(), String>
         let mut builder = GraphBuilder::new(&pdg_config.vcd_path, pdg_config.extra_scopes.clone(), sliced)?;
         let dpdg = builder.process(&pdg_config.criterion, pdg_config.max_timesteps.map(|t| t as i64), pdg_config.data_only)?;
 
-        println!("DPDG build: {}", now.elapsed().unwrap().as_millis());
+        println!("DPDG build: {}", (now.elapsed().unwrap().as_nanos() as f64) / 1e6);
         now = SystemTime::now();
         println!("DPDG build complete");
 
         let dpdg = dpdg_make_exportable(dpdg);
 
-        println!("Exportable: {}", now.elapsed().unwrap().as_millis());
+        println!("Exportable: {}", (now.elapsed().unwrap().as_nanos() as f64) / 1e6);
         now = SystemTime::now();
         println!("Made DPDG exportable");
 
         // Convert to source language
         let mut converted_pdg = pdg_convert_to_source(dpdg, false, true);
 
-        println!("Conversion: {}", now.elapsed().unwrap().as_millis());
+        println!("Conversion: {}", (now.elapsed().unwrap().as_nanos() as f64) / 1e6);
         now = SystemTime::now();
         println!("Converted to source representation");
 
@@ -66,13 +68,13 @@ pub async fn make_dpdg(state: State<'_, RwLock<AppState>>) -> Result<(), String>
         println!("VCD rewrite done");
         tywaves.inject_sim_data(&mut converted_pdg, &tywaves_vcd_path)?;
 
-        println!("Tywaves: {}", now.elapsed().unwrap().as_millis());
+        println!("Tywaves: {}", (now.elapsed().unwrap().as_nanos() as f64) / 1e6);
 
         for v in &mut converted_pdg.vertices {
             v.timestamp += 1;
         }
 
-        println!("Total: {}", start_time.elapsed().unwrap().as_millis());
+        println!("Total: {}", (start_time.elapsed().unwrap().as_nanos() as f64) / 1e6);
 
         //let converted_pdg = dpdg;
 
@@ -130,6 +132,7 @@ pub async fn make_dpdg(state: State<'_, RwLock<AppState>>) -> Result<(), String>
 
         let mut state_guard = state.write().map_err(|_| anyhow::anyhow!("RwLock poisoned"))?;
         state_guard.graph = Some(viewable_graph);
+        }
 
         Ok(())
     }).await
