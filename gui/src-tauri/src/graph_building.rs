@@ -1,6 +1,6 @@
 use std::{collections::{HashMap, HashSet}, fs::{read_to_string, File}, io::BufReader, sync::RwLock, time::SystemTime};
 
-use program_slicer_lib::{conversion::{dpdg_make_exportable, pdg_convert_to_source}, graphbuilder::GraphBuilder, pdg_spec::PDGSpec, sim_data_injection::TywavesInterface, slicing::pdg_slice};
+use program_slicer_lib::{conversion::{dpdg_make_exportable, pdg_convert_to_source}, graphbuilder::{GraphBuilder, GraphProcessingType}, pdg_spec::PDGSpec, sim_data_injection::TywavesInterface, slicing::pdg_slice};
 use serde::Deserialize;
 use tauri::State;
 use anyhow::Result;
@@ -42,7 +42,8 @@ pub async fn make_dpdg(state: State<'_, RwLock<AppState>>) -> Result<(), String>
 
         // Build the DPDG
         let mut builder = GraphBuilder::new(&pdg_config.vcd_path, pdg_config.extra_scopes.clone(), sliced)?;
-        let dpdg = builder.process(&pdg_config.criterion, pdg_config.max_timesteps.map(|t| t as i64), pdg_config.data_only)?;
+        let processing_type = if pdg_config.data_only { GraphProcessingType::DataOnly } else {GraphProcessingType::Normal };
+        let dpdg = builder.process(&pdg_config.criterion, pdg_config.max_timesteps.map(|t| t as i64), processing_type)?;
 
         println!("DPDG build: {}", (now.elapsed().unwrap().as_nanos() as f64) / 1e6);
         now = SystemTime::now();
@@ -60,6 +61,8 @@ pub async fn make_dpdg(state: State<'_, RwLock<AppState>>) -> Result<(), String>
         println!("Conversion: {}", (now.elapsed().unwrap().as_nanos() as f64) / 1e6);
         now = SystemTime::now();
         println!("Converted to source representation");
+        
+        println!("DPDG has {} nodes and {} edges", converted_pdg.vertices.len(), converted_pdg.edges.len());
 
         // Add simulation data
         let tywaves = TywavesInterface::new(&pdg_config.hgldd_path, pdg_config.extra_scopes.clone(), &pdg_config.top_module)?;

@@ -56,6 +56,13 @@ pub enum CriterionType {
     Signal(String)
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GraphProcessingType {
+    Normal, // The regular ChiselTrace options with data / control flow / index tracing
+    DataOnly, // An option for data only tracing, results in smaller graphs
+    Full // Also trace statement definitions. This is useful for exporting a full dynamic slice
+}
+
 impl GraphBuilder {
     pub fn new(vcd_path: impl AsRef<Path>, extra_scopes: Vec<String>, pdg: PDGSpec) -> Result<GraphBuilder> {
         let vcd_reader = VcdReader::new(vcd_path, extra_scopes)?;
@@ -80,7 +87,7 @@ impl GraphBuilder {
         Ok(GraphBuilder { reader: vcd_reader, pdg, linked_nodes: linked, pred_values: HashMap::new(), pred_idx_to_id: vec![], dependency_state: HashMap::new() })
     }
 
-    pub fn process(&mut self, criterion: &CriterionType, max_timesteps: Option<i64>, data_only: bool) -> Result<Rc<RefCell<DynPDGNode>>> {
+    pub fn process(&mut self, criterion: &CriterionType, max_timesteps: Option<i64>, processing_type: GraphProcessingType) -> Result<Rc<RefCell<DynPDGNode>>> {
         self.init_predicates()?;
 
         let mut eof_reached = false;
@@ -194,7 +201,7 @@ impl GraphBuilder {
                         }
                     }
 
-                    if data_only && dep_edge.kind != PDGSpecEdgeKind::Data {
+                    if processing_type == GraphProcessingType::DataOnly && dep_edge.kind != PDGSpecEdgeKind::Data {
                         continue;
                     }
 
@@ -214,6 +221,16 @@ impl GraphBuilder {
 
                     if conditions_satisfied {
                         match dep_edge.kind {
+                            PDGSpecEdgeKind::Declaration => {
+                                // Only add if the graph processing type is "Full", because this is only required for slicing, not ChiselTrace itself
+                                if processing_type == GraphProcessingType::Full {
+                                    // Just create a new one. I know this is a bit of an afterthought, but this is a simple way to make
+                                    // the dynamic slicing work. It doesn't need further processing anyway, so we can create as many nodes
+                                    // as we want.
+                                    let dep = Rc::new(RefCell::new(DynPDGNode {inner: dep_node.borrow().inner.clone(), timestamp: corrected_timestamp - 1, dependencies: vec![]}));
+                                    dpdg_node.borrow_mut().dependencies.push((dep.clone(), dep_edge.kind));
+                                }
+                            }
                             PDGSpecEdgeKind::Data | PDGSpecEdgeKind::Index  => {
                                 // Data dependencies should not be resolved using snapshotted dependencies.
                                 let dep_state = if dep_edge.kind == PDGSpecEdgeKind::Data {
