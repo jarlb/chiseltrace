@@ -76,7 +76,7 @@ pub fn pdg_convert_to_source(pdg: ExportablePDG, verbose_name: bool, is_dpdg: bo
 
 
     // For every group, check vertex reachability within the group and split if necessary.
-    // This is required for split compound signals. This code is probably real slow, optimise as needed
+    // This is required for split compound signals.
     let groups = grouped_nodes.values().flat_map(|g| {
         let mut grouped_nodes = BTreeMap::from_iter(g.iter().map(|n| (n.1, n.0.clone())));
         let mut groups = vec![];
@@ -238,26 +238,53 @@ pub fn pdg_convert_to_source(pdg: ExportablePDG, verbose_name: bool, is_dpdg: bo
 
     // There is one final problem: some constructs, such as lookup tables may generate an enormous amount of nodes.
     // Most of these have been merged at this point, but there may still be some that are not. These nodes are
-    // marked as non-chisel statements and can therefore non contain simulation data. It is best to merge them for clarity.
+    // marked as non-chisel statements and can therefore not contain simulation data. It is best to merge them for clarity.
     // To do this, we will search each timestep for duplicate non-chisel statements. We will then merge them into one and
     // dedup any edges.
 
+    // A note: this processing step can result in erroneous behaviour in designs where an anonymous statement is in multiple
+    // data paths, such as an adder tree.
+    // To specifically target lookup tables, the following heuristic is used: the merged nodes must have the same dependencies.
+
+    edges_by_to.clear();
+    edges_by_from.clear();
+    for edge in &merged_edges {
+        edges_by_from.entry(edge.from).and_modify(|x| x.push(edge)).or_insert(vec![edge]);
+        edges_by_to.entry(edge.to).and_modify(|x| x.push(edge)).or_insert(vec![edge]);
+    }
+
     let mut removed_indices = vec![];
-    let mut processed_verts: HashMap<i64, Vec<&ExportablePDGNode>> = HashMap::new();
+    let mut processed_verts: HashMap<i64, Vec<(&ExportablePDGNode, usize)>> = HashMap::new();
     for (vert_idx, vert) in new_verts.iter().enumerate() {
         processed_verts.entry(vert.timestamp)
             .and_modify(|vs| {
-                if vs.iter().find(|v| !v.is_chisel_assignment &&
-                v.file == vert.file && v.line == vert.line && v.name == vert.name).is_none() {
+                if let Some((_, dup_idx)) = vs.iter().find(|(v, _)| !v.is_chisel_assignment &&
+                v.file == vert.file && v.line == vert.line && v.name == vert.name) {
+                    // There is a duplicate vertex. Now we have to check if the edges are the same.
+                    // If so, we discard.
+                    let mut connected_edges_dup = HashSet::new();
+                    for check_edge in edges_by_from.get(&(*dup_idx as u32)).into_iter().flatten() {
+                        connected_edges_dup.insert(check_edge.to);
+                    }
+
+                    let mut duplicate = true;
+                    for check_edge in edges_by_from.get(&(vert_idx as u32)).into_iter().flatten() {
+                        if !connected_edges_dup.contains(&check_edge.to) {
+                            duplicate = false;
+                            break;
+                        }
+                    }
+
+                    if duplicate {
+                        removed_indices.push(vert_idx);
+                    }
+                } else {
                     // If for the verts timestamp, we do not find a vert that is same, we add the vert to the processed verts.
                     // If needed, we could check for the edges too (they will have the same ones), but I don't think it is necessary.
-                    vs.push(vert);
-                } else {
-                    // Otherwise, we mark for deletion
-                    removed_indices.push(vert_idx);
+                    vs.push((vert, vert_idx));
                 }
             })
-            .or_insert(vec![vert]);
+            .or_insert(vec![(vert, vert_idx)]);
     }
 
     // Now we just delete the duplicate verts.
