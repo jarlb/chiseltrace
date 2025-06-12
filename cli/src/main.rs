@@ -78,7 +78,7 @@ enum Commands {
     Convert {
         /// The path to the input PDG
         path: String,
-        #[clap(default_value = "pdg.json")]
+        #[clap(default_value = "converted_pdg.json")]
         output_path: String,
     }
 }

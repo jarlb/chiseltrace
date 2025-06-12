@@ -117,121 +117,60 @@ impl TywavesInterface {
         (&raw_val_vcd[..size], &raw_val_vcd[size..])
     }
 
-    fn convert_kind2info(&self, real_type: &VariableKind) -> VariableInfo {
-        match real_type {
-            VariableKind::Ground(width) => {
-                if *width == 1 {
-                    VariableInfo::Bool
-                } else {
-                    // TODO: Change this to bits
-                    let mut subfields = vec![];
-                    for i in 0..*width {
-                        subfields.push((i.to_string(), VariableInfo::Bool));
-                    }
-                    VariableInfo::Compound { subfields }
-                }
-            }
-            VariableKind::Struct { fields } | VariableKind::Vector { fields } => {
-                VariableInfo::Compound {
-                    subfields: fields
-                        .iter()
-                        .map(|f| {
-                            (
-                                create_translation_result_name(f),
-                                self.convert_kind2info(&f.kind),
-                            )
-                        })
-                        .collect(),
-                }
-            }
-            _ => VariableInfo::String,
-        }
-    }
+    // ================================ END COPIED CODE ================================ 
 
-    pub fn translate_variable(
+    fn translate_variable_field(
         &self,
         variable: &Variable,
         raw_val_vcd: &str,
-    ) -> Result<TranslationResult> {
+        field_path: &[&str],
+        last_type: Option<&String>
+    ) -> Option<String> {
         // Create the value representation
         let render_fn = |_num_bits: u64, raw_val_vcd: &str| {
             raw_val_vcd.to_string()
         };
 
-        let val_repr = variable.create_val_repr(raw_val_vcd, &render_fn);
-
-        // Create a result based on the kind of the variable
-        let result = match &variable.kind {
-            // Create a bool if the variable is a ground with width 1
-            // otherwise a bit vector
-            VariableKind::Ground(width) => {
-                let mut subfields = vec![];
-                for i in 0..*width as usize {
-                    let subfield = TranslationResult {
-                        val: raw_val_vcd.chars().nth(i).unwrap().to_string(),
-                        subfields: vec![],
-                        is_ground: true,
-                        kind: ValueKind::Normal,
-                    };
-                    subfields.push(SubFieldTranslationResult {
-                        name: i.to_string(),
-                        identifier: i.to_string(),
-                        type_info: "UInt<1>".into(),
-                        result: subfield,
-                    });
-                }
-
-                let subfields = match self.convert_kind2info(&variable.kind) {
-                    VariableInfo::Bool => vec![],
-                    _ => subfields,
+        match &variable.kind {
+            // Ground value instantly translates to the raw bitvector value
+            VariableKind::Ground(_) => {
+                let prefix = if let Some(tpe) = last_type {format!("{} ", tpe)} else {"".into()};
+                // let mut prefix = variable.high_level_info.type_name.clone();
+                // if prefix.len() > 0 {
+                //     prefix = prefix + " ";
+                // }
+                Some(prefix + &variable.create_val_repr(raw_val_vcd, &render_fn))
+            },
+            // Struct and vector get traversed using the field path
+            VariableKind::Struct { fields } | VariableKind::Vector { fields } => {
+                let Some(field_str) = field_path.get(0) else {
+                    println!("Something has gone terribly wrong! (no field, but still struct left)");
+                    return None;
                 };
 
-                let kind = ValueKind::Normal;
+                // Find the sub-field according to the path and get its value
+                let (mut field_val, mut _raw_val_vcd) = ("0", raw_val_vcd);
+                let mut field_found = None;
+                for f in fields {
+                    (field_val, _raw_val_vcd) = self.get_sub_raw_val(&f.kind, _raw_val_vcd);
+                    if f.name == *field_str {
+                        field_found = Some(f);
+                        break;
+                    }
+                }
 
-                TranslationResult {
-                    val: val_repr,
-                    subfields,
-                    is_ground: true,
-                    kind,
+                if let Some(f) = field_found {
+                    let new_field_path = &field_path[1..];
+                    self.translate_variable_field(f, field_val, new_field_path, Some(&f.high_level_info.type_name))
+                } else {
+                    println!("Something has gone terribly wrong! (field not found) {}", field_str);
+                    println!("{:?}", fields.iter().map(|f| f.name.clone()).collect::<Vec<_>>());
+                    None
                 }
             }
-            // Create a compound value if the variable is a struct or a vector
-            VariableKind::Struct { fields } | VariableKind::Vector { fields } => {
-                // Collect the subfields of the bundle
-                let mut subfields = vec![];
-
-                let mut _raw_val_vcd = raw_val_vcd;
-                let mut _val = "0";
-                for field in fields {
-                    // Get the value of the subfield
-                    (_val, _raw_val_vcd) = self.get_sub_raw_val(&field.kind, _raw_val_vcd);
-
-                    subfields.push(SubFieldTranslationResult {
-                        name: create_translation_result_name(field),
-                        identifier: field.name.clone(),
-                        type_info: field.high_level_info.type_name.clone(),
-                        result: self.translate_variable(field, _val)?,
-                    });
-                }
-
-                TranslationResult {
-                    val: val_repr,
-                    subfields,
-                    is_ground: false,
-                    kind: ValueKind::Normal,
-                }
-            }
-            _ => TranslationResult {
-                val: raw_val_vcd.to_string(),
-                subfields: vec![],
-                is_ground: true,
-                kind: ValueKind::Undef,
-            },
-        };
-
-        Ok(result)
+            _ => None
+        }
     }
-    // ================================ END COPIED CODE ================================ 
 
     // To inject simulation data into the graph:
     // We essentially want to associate simulation values with nodes.
@@ -263,6 +202,7 @@ impl TywavesInterface {
         // (needs hashmap). Then on the timestamp after a clock cycle, update the global hashmap and add the values to the nodes
 
         let mut values_cache: HashMap<String, String> = HashMap::new();
+        let mut tywaves_variable_cache: HashMap<Vec<String>, Option<Variable>> = HashMap::new();
         let mut rising_edge_found = false;
         let mut current_timestamp: i64 = -1;
         let mut clock_val = vcd::Value::V0;
@@ -291,11 +231,19 @@ impl TywavesInterface {
                                 if let Some(related_signal) = &node.related_signal {
                                     let mut hier_path = top_path.clone();
                                     hier_path.extend_from_slice(&related_signal.signal_path.split(".").map(|s| s.to_string()).collect::<Vec<_>>());
-                                    let ty_var = self.find_signal(&hier_path).ok();
+
+                                    // avoids the hier_path clone() when using .entry()
+                                    let ty_var = if let Some(v) = tywaves_variable_cache.get(&hier_path) {
+                                        v
+                                    } else {
+                                        tywaves_variable_cache.insert(hier_path.clone(), self.find_signal(&hier_path).ok());
+                                        tywaves_variable_cache.get(&hier_path).unwrap()
+                                    };
+                                    // let ty_var = self.find_signal(&hier_path).ok();
                                     // println!("{:#?}", ty_var);
                                     if let (Some(value), Some(tywaves_signal)) = (values_cache.get(&related_signal.signal_path), ty_var)  {
-                                        let translated_var = self.translate_variable(&tywaves_signal, value)?;
-                                        node.sim_data = find_ground_field(&translated_var, &related_signal.field_path);
+                                        let path_parts = related_signal.field_path.split(".").collect::<Vec<_>>();
+                                        node.sim_data =  self.translate_variable_field(&tywaves_signal, &value, &path_parts, None);
                                     }
                                 }
                             }
@@ -325,11 +273,19 @@ impl TywavesInterface {
                                 if let Some(related_signal) = &node.related_signal {
                                     let mut hier_path = top_path.clone();
                                     hier_path.extend_from_slice(&related_signal.signal_path.split(".").map(|s| s.to_string()).collect::<Vec<_>>());
-                                    let ty_var = self.find_signal(&hier_path).ok();
+
+                                    // avoids the hier_path clone() when using .entry()
+                                    let ty_var = if let Some(v) = tywaves_variable_cache.get(&hier_path) {
+                                        v
+                                    } else {
+                                        tywaves_variable_cache.insert(hier_path.clone(), self.find_signal(&hier_path).ok());
+                                        tywaves_variable_cache.get(&hier_path).unwrap()
+                                    };
+
                                     // println!("{:#?}", ty_var);
                                     if let (Some(value), Some(tywaves_signal)) = (values_cache.get(&related_signal.signal_path), ty_var)  {
-                                        let translated_var = self.translate_variable(&tywaves_signal, value)?;
-                                        node.sim_data = find_ground_field(&translated_var, &related_signal.field_path);
+                                        let path_parts = related_signal.field_path.split(".").collect::<Vec<_>>();
+                                        node.sim_data =  self.translate_variable_field(&tywaves_signal, &value, &path_parts, None);
                                     }
                                 }
                             }
