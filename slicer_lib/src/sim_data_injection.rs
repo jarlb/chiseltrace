@@ -343,21 +343,3 @@ fn build_signal_map(header: &vcd::Header) -> HashMap<IdCode, Vec<String>> {
 
     signals
 }
-
-fn find_ground_field(var: &TranslationResult, path: &String) -> Option<String> {
-    if var.is_ground {
-        return Some(var.val.clone())
-    }
-    let mut path_parts = path.split(".").collect::<VecDeque<_>>();
-    let mut current_result = var;
-    let mut last_type = None;
-    while let Some(field) = path_parts.pop_front() {
-        let Some(subfield) = current_result.subfields.iter().find(|s| s.identifier == field) else {
-            return None
-        };
-        current_result = &subfield.result;
-        last_type = Some(&subfield.type_info);
-    }
-    let prefix = if let Some(tpe) = last_type {format!("{} ", tpe)} else {"".into()};
-    Some(prefix + &current_result.val)
-}
