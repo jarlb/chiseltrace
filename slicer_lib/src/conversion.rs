@@ -388,7 +388,7 @@ pub fn dpdg_make_exportable(root: Rc<RefCell<DynPDGNode>>) -> ExportablePDG {
 
     let pdg_verts = scanned_nodes.nodes.iter().map(|el| {
         let node = el.borrow();
-        ExportablePDGNode { name: format!("{}", node.inner.name), timestamp: node.timestamp, ..node.inner.clone().into()}
+        ExportablePDGNode { name: format!("{}", node.inner.name), timestamp: node.timestamp, ..(*node.inner).clone().into()}
     }).collect::<Vec<_>>();
 
     pdg.vertices = pdg_verts;

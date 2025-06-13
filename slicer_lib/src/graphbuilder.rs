@@ -38,14 +38,16 @@ struct ValueChange {
 
 #[derive(Debug)]
 struct PDGNode {
-    inner: PDGSpecNode,
+    inner: Rc<PDGSpecNode>,
     provides: Vec<(Rc<RefCell<PDGNode>>, PDGSpecEdge)>,
     dependencies: Vec<(Rc<RefCell<PDGNode>>, PDGSpecEdge)>
 }
 
+// A word of warning: if there are somehow cycles in the graph, the refcounted pointers WILL leak memory
+// This shouldn't happen though.
 #[derive(Debug, Serialize)]
 pub struct DynPDGNode {
-    pub inner: PDGSpecNode,
+    pub inner: Rc<PDGSpecNode>,
     pub timestamp: i64,
     pub dependencies: Vec<(Rc<RefCell<DynPDGNode>>, PDGSpecEdgeKind)>
 }
@@ -69,7 +71,7 @@ impl GraphBuilder {
 
         // Link up the nodes for easier processing
         let linked = pdg.vertices.iter().map(|v| {
-            Rc::new(RefCell::new(PDGNode {inner: v.clone(), provides: vec![], dependencies: vec![] }))
+            Rc::new(RefCell::new(PDGNode {inner: Rc::new(v.clone()), provides: vec![], dependencies: vec![] }))
         }).collect::<Vec<_>>();
 
         for (node_idx, node) in linked.iter().enumerate() {
@@ -103,7 +105,7 @@ impl GraphBuilder {
             eof_reached = eof;
             let activated_statements = self.get_activated_statements(&c);
             let mut new_reg_providers: HashMap<String, Rc<RefCell<DynPDGNode>>> = HashMap::new();
-            let mut controlflow_providers: HashMap<PDGSpecNode, Rc<RefCell<DynPDGNode>>> = HashMap::new();
+            let mut controlflow_providers: HashMap<Rc<PDGSpecNode>, Rc<RefCell<DynPDGNode>>> = HashMap::new();
             let mut new_nodes = vec![];
 
             // Get the ready delayed statements
@@ -196,7 +198,7 @@ impl GraphBuilder {
                         //     println!("Processing dep {:?} with edge {:?}", dep_node.borrow().inner.name, dep_edge);
                         //     println!("====> Assigns to: {:?}", assigns_to);
                         // }
-                        if deps_processed.contains(assigns_to) {
+                        if deps_processed.contains(assigns_to) { // Linear search, but it's fine (not many entries)
                             continue;
                         }
                     }

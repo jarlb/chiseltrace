@@ -145,6 +145,12 @@ impl From<PDGSpecNode> for ExportableSliceStatement {
     }
 }
 
+impl From<Rc<PDGSpecNode>> for ExportableSliceStatement {
+    fn from(value: Rc<PDGSpecNode>) -> Self {
+        ExportableSliceStatement { file: value.file.clone(), line: value.line, char: value.char }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ExportablePDGNode {
     pub file: String,

@@ -1,7 +1,7 @@
 /*
     Note: this file contains mostly copied (slightly modified) code from the tywaves translator in the surfer-tywaves repository 
 */
-use std::{collections::{HashMap, VecDeque}, fs::File, io::BufReader, path::Path};
+use std::{collections::HashMap, fs::File, io::BufReader, path::Path};
 
 use tywaves_rs::{hgldd, tyvcd::{builder::{GenericBuilder, TyVcdBuilder}, spec::{Variable, VariableKind}, trace_pointer::TraceFinder}};
 use anyhow::Result;
@@ -36,31 +36,10 @@ pub enum VariableInfo {
     Real,
 }
 
-#[derive(Debug)]
-pub struct TranslationResult {
-    val: String,
-    subfields: Vec<SubFieldTranslationResult>,
-    is_ground: bool,
-    kind: ValueKind
-}
-
-#[derive(Debug)]
-pub struct SubFieldTranslationResult {
-    name: String,
-    identifier: String,
-    type_info: String,
-    result: TranslationResult
-}
-
 // ================================ BEGIN COPIED CODE ================================ 
 // Original author: Raffaele Meloni
 // Date: 19 march 2024
 // License: EUPL 1.2
-
-#[inline]
-fn create_translation_result_name(variable: &Variable) -> String {
-    format!("{}: {}", variable.high_level_info.type_name, variable.name)
-}
 
 /// An interface to Tywaves that is based on the one available in the surfer-tywaves project
 impl TywavesInterface {
@@ -119,6 +98,8 @@ impl TywavesInterface {
 
     // ================================ END COPIED CODE ================================ 
 
+    /// A version of translate_variable that does not translate the entire variable (like in surfer),
+    /// but instead traverses the variable tree while translating, saving a lot of string processing.
     fn translate_variable_field(
         &self,
         variable: &Variable,
