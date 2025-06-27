@@ -20,7 +20,7 @@ pub async fn make_dpdg(state: State<'_, RwLock<AppState>>) -> Result<(), String>
             anyhow::bail!("Tried building PDG before config was known.");
         };
         
-        for _ in 0..1 {
+        // for _ in 0..100 {
         let start_time = SystemTime::now();
         let mut now = SystemTime::now();
         let reader = BufReader::new(File::open(&pdg_config.pdg_path)?);
@@ -135,7 +135,7 @@ pub async fn make_dpdg(state: State<'_, RwLock<AppState>>) -> Result<(), String>
 
         let mut state_guard = state.write().map_err(|_| anyhow::anyhow!("RwLock poisoned"))?;
         state_guard.graph = Some(viewable_graph);
-        }
+        // }
 
         Ok(())
     }).await

@@ -1,4 +1,5 @@
-use std::{cell::RefCell, collections::HashMap, fs::File, io::{self, BufReader}, path::Path, rc::Rc};
+use std::{cell::RefCell, collections::{HashMap, HashSet}, fs::File, io::{self, BufReader}, path::Path, rc::Rc};
+use itertools::Itertools;
 use serde::Serialize;
 use vcd::{Command as Command, IdCode};
 use anyhow::Result;
@@ -74,16 +75,32 @@ impl GraphBuilder {
             Rc::new(RefCell::new(PDGNode {inner: Rc::new(v.clone()), provides: vec![], dependencies: vec![] }))
         }).collect::<Vec<_>>();
 
+        // Compute adjecency lists (kind of) to reduce time complexity
+        let mut edges_by_from: HashMap<u32, Vec<_>> = HashMap::new();
+        let mut edges_by_to: HashMap<u32, Vec<_>> = HashMap::new();
+        for edge in &pdg.edges {
+            edges_by_from.entry(edge.from).or_default().push(edge);
+            edges_by_to.entry(edge.to).or_default().push(edge);
+        }
+
+
         for (node_idx, node) in linked.iter().enumerate() {
-            for edge in &pdg.edges {
-                if edge.from == node_idx as u32 {
-                    let mut node_ref = node.borrow_mut();
-                    node_ref.dependencies.push((linked[edge.to as usize].clone(), edge.clone()));
-                }
-                if edge.to == node_idx as u32 {
-                    node.borrow_mut().provides.push((linked[edge.from as usize].clone(), edge.clone()));
-                }
+            for edge in edges_by_from.get(&(node_idx as u32)).into_iter().flatten() {
+                let mut node_ref = node.borrow_mut();
+                node_ref.dependencies.push((linked[edge.to as usize].clone(), (*edge).clone()));
             }
+            for edge in edges_by_to.get(&(node_idx as u32)).into_iter().flatten() {
+                node.borrow_mut().provides.push((linked[edge.from as usize].clone(), (*edge).clone()));
+            }
+            // for edge in &pdg.edges {
+            //     if edge.from == node_idx as u32 {
+            //         let mut node_ref = node.borrow_mut();
+            //         node_ref.dependencies.push((linked[edge.to as usize].clone(), edge.clone()));
+            //     }
+            //     if edge.to == node_idx as u32 {
+            //         node.borrow_mut().provides.push((linked[edge.from as usize].clone(), edge.clone()));
+            //     }
+            // }
         }
 
         Ok(GraphBuilder { reader: vcd_reader, pdg, linked_nodes: linked, pred_values: HashMap::new(), pred_idx_to_id: vec![], dependency_state: HashMap::new() })
@@ -93,7 +110,7 @@ impl GraphBuilder {
         self.init_predicates()?;
 
         let mut eof_reached = false;
-        let mut all_nodes = vec![];
+        let mut criterion_node = None;
 
         let mut delayed_statement_buffer: Vec<(i64, u32)> = vec![];
 
@@ -190,7 +207,7 @@ impl GraphBuilder {
                 };
                 // A statement may depend on multiple statements that provide the same symbol.
                 // We only want to process the symbol once, otherwise we get duplicate dependencies.
-                let mut deps_processed = vec![];
+                let mut deps_processed = HashSet::new();
                 // println!("Statement {:?}. Dependencies: {:?}", node.borrow().inner.name, node.borrow().dependencies.iter().map(|d| d.0.borrow().inner.name.clone()).collect::<Vec<_>>());
                 for (dep_node, dep_edge) in &node.borrow().dependencies {
                     if let Some(ref assigns_to) = dep_node.borrow().inner.assigns_to {
@@ -198,7 +215,7 @@ impl GraphBuilder {
                         //     println!("Processing dep {:?} with edge {:?}", dep_node.borrow().inner.name, dep_edge);
                         //     println!("====> Assigns to: {:?}", assigns_to);
                         // }
-                        if deps_processed.contains(assigns_to) { // Linear search, but it's fine (not many entries)
+                        if deps_processed.contains(assigns_to) {
                             continue;
                         }
                     }
@@ -244,7 +261,7 @@ impl GraphBuilder {
                                     if let Some(dep) = dep_state.get(dep_str) {
                                         dpdg_node.borrow_mut().dependencies.push((dep.clone(), dep_edge.kind));
                                     }
-                                    deps_processed.push(dep_str.clone());
+                                    deps_processed.insert(dep_str.clone());
                                 }
                             }
                             PDGSpecEdgeKind::Conditional => {
@@ -269,7 +286,7 @@ impl GraphBuilder {
                     CriterionType::Statement(c) => n.borrow().inner.name.eq(c),
                     CriterionType::Signal(c) => n.borrow().inner.assigns_to.as_ref().map_or(false, |s| s.eq(c))
                 } {
-                    all_nodes.push(n);
+                    criterion_node = Some(n)
                 }
             }
             for (k,v) in new_reg_providers {
@@ -282,7 +299,7 @@ impl GraphBuilder {
         }
 
         // println!("Full graph: {:#?}", all_nodes[all_nodes.len()-1]);
-        println!("Amount of nodes: {}", all_nodes.len());
+        // println!("Amount of nodes: {}", all_nodes.len());
 
         // let exported_node = all_nodes.iter()
         //     .filter(|n| {
@@ -295,10 +312,7 @@ impl GraphBuilder {
         //     .ok_or(Error::StatementLookupError("Criterion not found in DPDG".into()))?;
             
         let exported_node = match criterion {
-            CriterionType::Statement(c) => {
-                all_nodes.iter().filter(|n| n.borrow().inner.name.eq(c))
-                    .max_by_key(|n| n.borrow().timestamp)
-            }
+            CriterionType::Statement(_) => criterion_node.as_ref(),
             // If we are looking for a signal, give the latest assignment.
             CriterionType::Signal(c) => self.dependency_state.get(c)
         }.ok_or(Error::StatementLookupError("Criterion not found in DPDG".into()))?;

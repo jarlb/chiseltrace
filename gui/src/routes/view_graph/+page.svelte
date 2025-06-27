@@ -219,20 +219,20 @@
       },
       physics: {
         enabled: true,
-        solver: 'barnesHut', // Use Barnes-Hut approximation
+        solver: 'barnesHut',
         stabilization: {
           enabled: true,
           iterations: 10,
           updateInterval: 1,
           fit: false
         },
-        barnesHut: {
-          gravitationalConstant: -1000,  // Overall repulsion strength
-          centralGravity: 0.0,         // Pull toward center
-          springLength: 150,           // Ideal edge length
-          springConstant: 0.005,        // Edge attraction strength (lower = weaker)
-          damping: 0.09,               // Friction
-          avoidOverlap: 1            // Node spacing
+        barnesHut: { // These really need some tweaking for a production app
+          gravitationalConstant: -1000, // Overall repulsion strength
+          centralGravity: 0.0, // Pull toward center
+          springLength: 150, // Ideal edge length
+          springConstant: 0.005, // Edge attraction strength (lower = weaker)
+          damping: 0.09, // Friction
+          avoidOverlap: 1 // Node spacing
         }
       },
       nodes: {
@@ -265,7 +265,7 @@
     }
     debounceTimer = setTimeout(async () => {
       await updateGraph();
-    }, 50); // Adjust timing as needed (milliseconds)
+    }, 50); // This is done to not overload the JS engine while the user scrolls, only update at the end of the scroll
 
     timelinePosition = Math.min(timestamps.length * 600 - scrollWrapper.clientWidth, Math.max(0, timelinePosition + event.deltaY));
     console.log(timelinePosition);
@@ -282,21 +282,21 @@
   }
 
   // Gets the ID's of the timeslots in view. Used to center the graph properly
-  function getTimeslotsInView(): string[] {
-    let slotsInView: string[] = [];
-    let pixelCounter = 0;
-    timestamps.forEach((timestamp) => {
-      pixelCounter += timestamp.width;
-      if (pixelCounter > timelinePosition && pixelCounter - timestamp.width < timelinePosition + scrollWrapper.clientWidth) {
-        slotsInView.push(timestamp.id);
-      }
-    });
-    console.log(slotsInView);
-    return slotsInView;
-  }
+  // No longer used, this is done in the back-end
+  // function getTimeslotsInView(): string[] {
+  //   let slotsInView: string[] = [];
+  //   let pixelCounter = 0;
+  //   timestamps.forEach((timestamp) => {
+  //     pixelCounter += timestamp.width;
+  //     if (pixelCounter > timelinePosition && pixelCounter - timestamp.width < timelinePosition + scrollWrapper.clientWidth) {
+  //       slotsInView.push(timestamp.id);
+  //     }
+  //   });
+  //   console.log(slotsInView);
+  //   return slotsInView;
+  // }
 
   // This function is responsible for determining the time stamps that should be loaded
-  // =========================================================================
   function getTimestampsToLoad(offset: number = 1800): number[] {
     let timeStampsInRange: number[] = [];
     let pixelCounter = 0;
@@ -308,7 +308,6 @@
     });
     return timeStampsInRange;
   }
-  // =========================================================================
 
   function handleWindowResize() {
     network.moveTo({
@@ -340,7 +339,7 @@
       {#if hoveredNode}
       <div class="node-tooltip" style={`left: ${tooltipPosition.x}px; top: ${tooltipPosition.y}px`}>
         <h3>{hoveredNode.label}</h3>
-        <p>{hoveredNode.file}:{hoveredNode.line}</p>
+        <p style="max-width: 100%; word-break: break-all;">{hoveredNode.file}:{hoveredNode.line}</p>
         {#if hoveredNode.code}
           <CodeBlock code={hoveredNode.code}></CodeBlock>
         {/if}
@@ -428,7 +427,7 @@
     left: 0;
     right: 0;
     height: 1px;
-    background-color: rgba(66, 153, 225, 0.2); /* Change color as needed */
+    background-color: rgba(66, 153, 225, 0.2);
     z-index: 51;
 }
 

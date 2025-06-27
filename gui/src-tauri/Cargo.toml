@@ -27,4 +27,10 @@ anyhow = "1.0.97"
 program_slicer_lib = { path = "../../slicer_lib" }
 thiserror = "2.0.12"
 itertools = "0.14.0"
+mimalloc = "0.1.46"
 
+[profile.release]
+lto = "fat"
+
+[build]
+rustflags = ["-C", "target-cpu=native"]
