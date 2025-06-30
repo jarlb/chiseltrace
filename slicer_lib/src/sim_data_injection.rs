@@ -1,5 +1,5 @@
 /*
-    Note: this file contains mostly copied (slightly modified) code from the tywaves translator in the surfer-tywaves repository 
+    Note: this file contains some copied (slightly modified) code from the tywaves translator in the surfer-tywaves repository 
 */
 use std::{collections::HashMap, fs::File, io::BufReader, path::Path};
 

@@ -43,7 +43,10 @@ pub struct Args {
     pub max_timesteps: Option<u64>,
 
     #[arg(long)]
-    pub data_only: Option<bool>
+    pub data_only: Option<bool>,
+
+    #[arg(long)]
+    pub hier_grouping: Option<bool>
 }
 
 impl Args {

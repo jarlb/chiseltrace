@@ -2,11 +2,11 @@ use std::sync::RwLock;
 
 use anyhow::anyhow;
 use itertools::Itertools;
-use program_slicer_lib::pdg_spec::{PDGSpecEdgeKind, PDGSpecNodeKind};
+use program_slicer_lib::pdg_spec::{ExportablePDG, PDGSpecEdgeKind, PDGSpecNodeKind};
 use serde::Serialize;
 use tauri::State;
 
-use crate::{app_state::{AppState, ViewableGraph}, errors::map_err_to_string, translation::{interpret_tywaves_value, TranslationStrategy}};
+use crate::{app_state::{AppState, ViewableGraph}, errors::map_err_to_string, graph_building::rebuild_hier_graph, translation::{interpret_tywaves_value, TranslationStrategy}};
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -21,6 +21,7 @@ struct ViewerNode {
     id: u64,
     label: String,
     group: String, // The timeslot group
+    module_path: Vec<String>,
     timestamp: u64,
     long_distance: bool,
     color: NodeColour,
@@ -150,13 +151,13 @@ impl Serialize for EdgeColour {
 }
 
 /// Get the signals that will be displayed in the hover tooltip
-fn get_viewer_signals(graph: &ViewableGraph, edges: &Vec<usize>, incoming: bool) -> Vec<ViewerSignal> {
+fn get_viewer_signals(dpdg: &ExportablePDG, edges: &Vec<usize>, incoming: bool) -> Vec<ViewerSignal> {
     edges.iter().map(|e| {
-        let edge = &graph.dpdg.edges[*e];
+        let edge = &dpdg.edges[*e];
         let destination =  if incoming {
-            &graph.dpdg.vertices[edge.to as usize]
+            &dpdg.vertices[edge.to as usize]
         } else {
-            &graph.dpdg.vertices[edge.from as usize]
+            &dpdg.vertices[edge.from as usize]
         };
         let name = if let Some(signal) = &destination.related_signal {
             if signal.field_path.is_empty() {
@@ -196,87 +197,212 @@ pub fn get_n_timeslots(state: State<'_, RwLock<AppState>>) -> Result<u64, String
 }
 
 #[tauri::command]
+pub fn toggle_module(state: State<'_, RwLock<AppState>>, module_path: Vec<String>, timestamp: i64) -> Result<(), String> {
+    map_err_to_string(|| {
+        let mut should_rebuild_graph = false;
+        {
+            let mut state_guard = state.write().map_err(|_| anyhow!("RwLock poisoned"))?;
+            let Some(graph) = &mut state_guard.graph else {
+                anyhow::bail!("Uninitialized graph!");
+            };
+
+            if let Some(hier) = &mut graph.node_hierarchy {
+                if module_path.len() > 0 && module_path[0].len() > 0 {
+                    let mut group = hier[timestamp as usize].clone();
+                    for path_part in &module_path {
+                        let new_group = {
+                            let group_lock = group.read().unwrap();
+                            let Some(new_group) = group_lock.children.iter().find(|g| g.read().unwrap().instance_name.eq(path_part)) else {
+                                return Ok(());
+                            };
+                            new_group.clone()
+                        };
+                        group = new_group
+                    }
+                    // Now we have the module we want to toggle
+                    let mut guard = group.write().unwrap();
+                    guard.expanded = !guard.expanded;
+                    should_rebuild_graph = true;
+                }
+            }
+        }
+        if should_rebuild_graph {
+            rebuild_hier_graph(&state)?;
+        }
+        Ok(())
+    })
+}
+
+#[tauri::command]
 pub fn get_partial_graph(state: State<'_, RwLock<AppState>>, range_begin: u64, range_end: u64) -> Result<String, String> {
     map_err_to_string(|| {
         let state_guard = state.read().map_err(|_| anyhow!("RwLock poisoned"))?;
         let Some(graph) = &state_guard.graph else {
             anyhow::bail!("Uninitialized graph!");
         };
-        let mut viewer_graph = ViewerGraph { vertices: vec![], edges: vec![] };
 
-        for timestamp in range_begin..=range_end {
-            let default_vec = vec![];
-            let node_indices = graph.time_to_nodes.get(&(timestamp as i64)).unwrap_or(&default_vec);
-            for idx in node_indices {
-                let node = &graph.dpdg.vertices[*idx];
-                let edges = graph.dep_to_edges.get(&(*idx as u32));
-                let group = format!("t{}", graph.n_timestamps - timestamp);
-                let incoming = edges.map_or(vec![], |edges| get_viewer_signals(graph, edges, true));
-                let outgoing = graph.prov_to_edges.get(&(*idx as u32)).map_or(vec![], |edges| get_viewer_signals(graph, edges, true));
-                viewer_graph.vertices.push(ViewerNode {
-                    id: *idx as u64,
-                    label: node.name.clone(),
-                    group: group.clone(),
-                    timestamp,
-                    long_distance: false,
-                    color: NodeColour::from(node.kind),
-                    shape: NodeShape::from(node.kind),
-                    code: graph.source_files.get(&node.file).map(|v| v.get(node.line as usize - 1).map(|l| l.clone())).flatten(),
-                    incoming,
-                    outgoing,
-                    file: node.file.clone(),
-                    line: node.line
-                });
-                if let Some(edges) = edges {
-                    for edge in edges {
-                        let edge = &graph.dpdg.edges[*edge];
-                        let destination = &graph.dpdg.vertices[edge.to as usize];
-                        let label = if let Some(d) = &destination.sim_data {
-                            let translated = interpret_tywaves_value(d, TranslationStrategy::Auto);
-                            format!("{} {}", translated.tpe.unwrap_or("".into()), translated.value)
-                        } else { "".into() };
-                        if node.timestamp.abs_diff(destination.timestamp) > 3 {
-                            let edges = graph.dep_to_edges.get(&edge.to);
-                            let incoming = edges.map_or(vec![], |edges| get_viewer_signals(graph, edges, true));
-                            let outgoing = graph.prov_to_edges.get(&edge.to).map_or(vec![], |edges| get_viewer_signals(graph, edges, true));
-                            // If an edge goes to a node that is more than 3 timesteps away, instead add it as a long distance relation
-                            // It is important to generate a unique ID for these pseudo-nodes, because they MUST be unique in the graph
-                            viewer_graph.vertices.push(ViewerNode {
-                                id: edge.to as u64 + graph.dpdg.vertices.len() as u64 + edge.from as u64,
-                                label: destination.name.clone(),
-                                group: group.clone(),
-                                timestamp,
-                                long_distance: true,
-                                color: NodeColour::from(destination.kind),
-                                shape: NodeShape::from(destination.kind),
-                                code: graph.source_files.get(&destination.file).map(|v| v.get(destination.line as usize - 1).map(|l| l.clone())).flatten(),
-                                incoming,
-                                outgoing,
-                                file: node.file.clone(),
-                                line: node.line
-                            });
-                            viewer_graph.edges.push(ViewerEdge {
-                                from: edge.from as u64,
-                                to: edge.to as u64 + graph.dpdg.vertices.len() as u64 + edge.from as u64,
-                                arrows: "to".into(),
-                                color: EdgeColour::from(edge.kind),
-                                dotted: edge.clocked,
-                                label
-                            });
-                        } else {
-                            viewer_graph.edges.push(ViewerEdge {
-                                from: edge.from as u64,
-                                to: edge.to as u64,
-                                arrows: "to".into(),
-                                color: EdgeColour::from(edge.kind),
-                                dotted: edge.clocked,
-                                label
-                            });
+        if !graph.should_group_nodes { // Regular 
+            let mut viewer_graph = ViewerGraph { vertices: vec![], edges: vec![] };
+
+            for timestamp in range_begin..=range_end {
+                let default_vec = vec![];
+                let node_indices = graph.time_to_nodes.get(&(timestamp as i64)).unwrap_or(&default_vec);
+                for idx in node_indices {
+                    let node = &graph.dpdg.vertices[*idx];
+                    let edges = graph.dep_to_edges.get(&(*idx as u32));
+                    let group = format!("t{}", graph.n_timestamps - timestamp);
+                    let incoming = edges.map_or(vec![], |edges| get_viewer_signals(&graph.dpdg, edges, true));
+                    let outgoing = graph.prov_to_edges.get(&(*idx as u32)).map_or(vec![], |edges| get_viewer_signals(&graph.dpdg, edges, true));
+                    viewer_graph.vertices.push(ViewerNode {
+                        id: *idx as u64,
+                        label: node.name.clone(),
+                        group: group.clone(),
+                        module_path: node.module_path.clone(),
+                        timestamp,
+                        long_distance: false,
+                        color: NodeColour::from(node.kind),
+                        shape: NodeShape::from(node.kind),
+                        code: graph.source_files.get(&node.file).map(|v| v.get(node.line as usize - 1).map(|l| l.clone())).flatten(),
+                        incoming,
+                        outgoing,
+                        file: node.file.clone(),
+                        line: node.line
+                    });
+                    if let Some(edges) = edges {
+                        for edge in edges {
+                            let edge = &graph.dpdg.edges[*edge];
+                            let destination = &graph.dpdg.vertices[edge.to as usize];
+                            let label = if let Some(d) = &destination.sim_data {
+                                let translated = interpret_tywaves_value(d, TranslationStrategy::Auto);
+                                format!("{} {}", translated.tpe.unwrap_or("".into()), translated.value)
+                            } else { "".into() };
+                            if node.timestamp.abs_diff(destination.timestamp) > 3 {
+                                let edges = graph.dep_to_edges.get(&edge.to);
+                                let incoming = edges.map_or(vec![], |edges| get_viewer_signals(&graph.dpdg, edges, true));
+                                let outgoing = graph.prov_to_edges.get(&edge.to).map_or(vec![], |edges| get_viewer_signals(&graph.dpdg, edges, true));
+                                // If an edge goes to a node that is more than 3 timesteps away, instead add it as a long distance relation
+                                // It is important to generate a unique ID for these pseudo-nodes, because they MUST be unique in the graph
+                                viewer_graph.vertices.push(ViewerNode {
+                                    id: edge.to as u64 + graph.dpdg.vertices.len() as u64 + edge.from as u64,
+                                    label: destination.name.clone(),
+                                    group: group.clone(),
+                                    module_path: destination.module_path.clone(),
+                                    timestamp,
+                                    long_distance: true,
+                                    color: NodeColour::from(destination.kind),
+                                    shape: NodeShape::from(destination.kind),
+                                    code: graph.source_files.get(&destination.file).map(|v| v.get(destination.line as usize - 1).map(|l| l.clone())).flatten(),
+                                    incoming,
+                                    outgoing,
+                                    file: node.file.clone(),
+                                    line: node.line
+                                });
+                                viewer_graph.edges.push(ViewerEdge {
+                                    from: edge.from as u64,
+                                    to: edge.to as u64 + graph.dpdg.vertices.len() as u64 + edge.from as u64,
+                                    arrows: "to".into(),
+                                    color: EdgeColour::from(edge.kind),
+                                    dotted: edge.clocked,
+                                    label
+                                });
+                            } else {
+                                viewer_graph.edges.push(ViewerEdge {
+                                    from: edge.from as u64,
+                                    to: edge.to as u64,
+                                    arrows: "to".into(),
+                                    color: EdgeColour::from(edge.kind),
+                                    dotted: edge.clocked,
+                                    label
+                                });
+                            }
                         }
                     }
                 }
             }
+            Ok(serde_json::to_string(&viewer_graph)?)
+        } else {
+            // We are displaying grouped nodes. TODO: find a better solution without copying the entire thing
+            let mut viewer_graph = ViewerGraph { vertices: vec![], edges: vec![] };
+            let Some(hier_graph) = &graph.current_hier_dpdg else {
+                anyhow::bail!("Hierarchical graph not initialized!");
+            };
+
+            for timestamp in range_begin..=range_end {
+                let default_vec = vec![];
+                let node_indices = hier_graph.time_to_nodes.get(&(timestamp as i64)).unwrap_or(&default_vec);
+                for idx in node_indices {
+                    let node = &hier_graph.dpdg.vertices[*idx];
+                    let edges = hier_graph.dep_to_edges.get(&(*idx as u32));
+                    let group = format!("t{}", graph.n_timestamps - timestamp);
+                    let incoming = edges.map_or(vec![], |edges| get_viewer_signals(&hier_graph.dpdg, edges, true));
+                    let outgoing = hier_graph.prov_to_edges.get(&(*idx as u32)).map_or(vec![], |edges| get_viewer_signals(&hier_graph.dpdg, edges, true));
+                    viewer_graph.vertices.push(ViewerNode {
+                        id: hier_graph.original_ids[*idx] as u64,
+                        label: node.name.clone(),
+                        group: group.clone(),
+                        module_path: node.module_path.clone(),
+                        timestamp,
+                        long_distance: false,
+                        color: NodeColour::from(node.kind),
+                        shape: NodeShape::from(node.kind),
+                        code: graph.source_files.get(&node.file).map(|v| v.get(node.line as usize - 1).map(|l| l.clone())).flatten(),
+                        incoming,
+                        outgoing,
+                        file: node.file.clone(),
+                        line: node.line
+                    });
+                    if let Some(edges) = edges {
+                        for edge in edges {
+                            let edge = &hier_graph.dpdg.edges[*edge];
+                            let destination = &hier_graph.dpdg.vertices[edge.to as usize];
+                            let label = if let Some(d) = &destination.sim_data {
+                                let translated = interpret_tywaves_value(d, TranslationStrategy::Auto);
+                                format!("{} {}", translated.tpe.unwrap_or("".into()), translated.value)
+                            } else { "".into() };
+                            if node.timestamp.abs_diff(destination.timestamp) > 3 {
+                                let edges = hier_graph.dep_to_edges.get(&edge.to);
+                                let incoming = edges.map_or(vec![], |edges| get_viewer_signals(&hier_graph.dpdg, edges, true));
+                                let outgoing = hier_graph.prov_to_edges.get(&edge.to).map_or(vec![], |edges| get_viewer_signals(&hier_graph.dpdg, edges, true));
+                                // If an edge goes to a node that is more than 3 timesteps away, instead add it as a long distance relation
+                                // It is important to generate a unique ID for these pseudo-nodes, because they MUST be unique in the graph
+                                viewer_graph.vertices.push(ViewerNode {
+                                    id: hier_graph.original_ids[edge.to as usize] as u64 + graph.dpdg.vertices.len() as u64 + hier_graph.original_ids[edge.from as usize] as u64,
+                                    label: destination.name.clone(),
+                                    group: group.clone(),
+                                    module_path: destination.module_path.clone(),
+                                    timestamp,
+                                    long_distance: true,
+                                    color: NodeColour::from(destination.kind),
+                                    shape: NodeShape::from(destination.kind),
+                                    code: graph.source_files.get(&destination.file).map(|v| v.get(destination.line as usize - 1).map(|l| l.clone())).flatten(),
+                                    incoming,
+                                    outgoing,
+                                    file: node.file.clone(),
+                                    line: node.line
+                                });
+                                viewer_graph.edges.push(ViewerEdge {
+                                    from: hier_graph.original_ids[edge.from as usize] as u64,
+                                    to:  hier_graph.original_ids[edge.to as usize] as u64 + graph.dpdg.vertices.len() as u64 + hier_graph.original_ids[edge.from as usize] as u64,
+                                    arrows: "to".into(),
+                                    color: EdgeColour::from(edge.kind),
+                                    dotted: edge.clocked,
+                                    label
+                                });
+                            } else {
+                                viewer_graph.edges.push(ViewerEdge {
+                                    from: hier_graph.original_ids[edge.from as usize] as u64,
+                                    to: hier_graph.original_ids[edge.to as usize] as u64,
+                                    arrows: "to".into(),
+                                    color: EdgeColour::from(edge.kind),
+                                    dotted: edge.clocked,
+                                    label
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            Ok(serde_json::to_string(&viewer_graph)?)
         }
-        Ok(serde_json::to_string(&viewer_graph)?)
     })
 }

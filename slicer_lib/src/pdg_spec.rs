@@ -25,6 +25,8 @@ pub struct PDGSpecNode {
     pub name: String,
     pub kind: PDGSpecNodeKind,
     pub clocked: bool,
+    #[serde(default)]
+    pub module_path: Vec<String>,
     pub related_signal: Option<PDGSpecRelatedSignal>,
     pub assigns_to: Option<String>,
     pub is_chisel_statement: bool,
@@ -151,7 +153,7 @@ impl From<Rc<PDGSpecNode>> for ExportableSliceStatement {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Hash, PartialEq, Eq)]
 pub struct ExportablePDGNode {
     pub file: String,
     pub line: u32,
@@ -159,6 +161,7 @@ pub struct ExportablePDGNode {
     pub name: String,
     pub kind: PDGSpecNodeKind,
     pub clocked: bool,
+    pub module_path: Vec<String>,
     pub related_signal: Option<PDGSpecRelatedSignal>,
     pub sim_data: Option<String>,
     pub timestamp: i64,
@@ -168,7 +171,7 @@ pub struct ExportablePDGNode {
 impl From<PDGSpecNode> for ExportablePDGNode {
     fn from(value: PDGSpecNode) -> Self {
         ExportablePDGNode { file: value.file, line: value.line, char: value.char, name: value.name, kind: value.kind,
-            clocked: value.clocked, related_signal: value.related_signal, sim_data: None,
+            clocked: value.clocked, module_path: value.module_path, related_signal: value.related_signal, sim_data: None,
             is_chisel_assignment: value.is_chisel_statement, timestamp: 0
         }
     }

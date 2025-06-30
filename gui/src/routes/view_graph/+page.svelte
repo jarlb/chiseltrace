@@ -3,7 +3,7 @@
   import { invoke } from "@tauri-apps/api/core";
   import { Network } from 'vis-network/esnext';
   import { DataSet } from 'vis-data';
-  import type { Edge, Node, Options } from 'vis-network/esnext';
+  import type { Edge, Node, Options, Position } from 'vis-network/esnext';
   import 'vis-network/styles/vis-network.css';
 
   import CodeBlock from '../../lib/components/CodeBlock.svelte';
@@ -16,6 +16,11 @@
 
   let hoveredNode: any = null;
   let tooltipPosition = { x: 0, y: 0 };
+
+  let showMenu = false;
+  let menuX = 0;
+  let menuY = 0;
+  let contextMenuNode: CustomNode | null = null;
 
   interface Timestamp {
     id: string;
@@ -32,6 +37,7 @@
 
   interface CustomNode extends Node {
     group: string;
+    modulePath: string[];
     timestamp: number;
     longDistance: boolean;
     code: string | null;
@@ -49,6 +55,7 @@
   let timestamps: Timestamp[] = [];
   const nodes = new DataSet<CustomNode>([]);
   const edges = new DataSet<Edge>([]);
+  let positionCache = new Map<string, Position>();
 
   function generateReverseIndexTimestamps(num_timestamps: number): Timestamp[] {
     const timestamps: Timestamp[] = [];
@@ -70,23 +77,54 @@
     return a.length === b.length && a.every((value, index) => value === b[index]);
   }
 
-  async function updateGraph() {
+  async function updateGraph(reset_graph: boolean = false) {
     const timestampsToLoad = getTimestampsToLoad();
-    if (!arraysEqual(timestampsToLoad, timestampsInGraph)) {
-      const removedTimestamps = timestampsInGraph.filter(item => !timestampsToLoad.includes(item));
-      const newTimestamps = timestampsToLoad.filter(item => !timestampsInGraph.includes(item));
+    if (!arraysEqual(timestampsToLoad, timestampsInGraph) || reset_graph) {
+      let removedTimestamps = timestampsInGraph.filter(item => !timestampsToLoad.includes(item));
+      let newTimestamps = timestampsToLoad.filter(item => !timestampsInGraph.includes(item));
+      if (reset_graph) {
+        removedTimestamps = timestampsToLoad;
+        newTimestamps = timestampsToLoad;
+      }
       const response = await invoke<string>("get_partial_graph", {rangeBegin: Math.min(...timestampsToLoad), rangeEnd: Math.max(...timestampsToLoad)});
       try {
         const g: ViewerGraph = JSON.parse(response);
         const nodesToRemove = nodes.get({
           filter: (node) => removedTimestamps.includes(node.timestamp)
         });
+        // save the old node positions
+        let oldPositions = network.getPositions(nodesToRemove.map(node => node.id));
+        Object.entries(oldPositions).forEach(([id, pos]) => {
+          positionCache.set(id, pos);
+        });
+        console.log(positionCache);
         nodes.remove(nodesToRemove.map(node => node.id));
 
         const nodesToAdd = g.vertices.flatMap(node => {
           if (newTimestamps.includes(node.timestamp)) {
-            return [node];
-          } else { return []; }
+            const oldPos = positionCache.get(node.id!.toString());
+            if (oldPos !== undefined) {
+              // Node has a saved position -> set the position and disable placement
+              return [{
+                ...node,
+                x: oldPos.x,
+                y: oldPos.y,
+                physics: false,
+                fixed: {
+                  x: false,
+                  y: false
+                }
+              }];
+            } else {
+              // New node without saved position -> automatic placement
+              return [{
+                ...node,
+                physics: true
+              }];
+            }
+          } else {
+            return [];
+          }
         });
         console.log(nodesToRemove);
         console.log(nodesToAdd);
@@ -100,6 +138,14 @@
         console.error("Failed to parse response", error);
       }
       timestampsInGraph = timestampsToLoad;
+    }
+  }
+
+  async function toggleModule() {
+    if (contextMenuNode !== null) {
+      await invoke("toggle_module", {modulePath: contextMenuNode.modulePath, timestamp: contextMenuNode.timestamp});
+      await updateGraph(true);
+      showMenu = false;
     }
   }
 
@@ -143,11 +189,27 @@
         }, 1000);  
       });
 
+      // Add the tooltip callback
       network.on("hoverNode", (event) => {
         console.log(event);
         hoveredNode = nodes.get(event.node);
         const pos = network.getPositions([event.node])[event.node];
         tooltipPosition = network.canvasToDOM(pos);
+      });
+
+      // Right click callback
+      network.on("oncontext", function (params) {
+          let nodeID = network.getNodeAt(params.pointer.DOM);
+          if (nodeID !== undefined && nodeID !== null && !Array.isArray(nodeID)) {
+            params.event.preventDefault();
+            showMenu = true;
+            menuX = params.event.pageX;
+            menuY = params.event.pageY;
+            let node = nodes.get(nodeID);
+            contextMenuNode = node;
+            console.log('Single node found:', contextMenuNode);
+          }
+
       });
 
       network.on("blurNode", () => {
@@ -316,7 +378,23 @@
       animation: false
     });
   }
+
+  function closeMenu() {
+    showMenu = false;
+  }
 </script>
+
+{#if showMenu}
+  <div
+    class="context-menu"
+    style={`left: ${menuX}px; top: ${menuY}px`}
+    on:click|stopPropagation
+  >
+    <div class="menu-item" on:click={() => toggleModule()}>Toggle module</div>
+    <div class="menu-item" on:click={() => alert('Option 2 clicked')}>Make new head</div>
+    <div class="menu-item" on:click={closeMenu}>Close</div>
+  </div>
+{/if}
 
 <div class="graph-container">
   <div class="scroll-wrapper" bind:this={scrollWrapper}>
@@ -388,6 +466,25 @@
     margin: 0;
     padding: 0;
     overflow: hidden;
+  }
+
+  .context-menu {
+    position: fixed;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    z-index: 1000;
+    min-width: 120px;
+  }
+
+  .menu-item {
+    padding: 8px 12px;
+    cursor: pointer;
+  }
+
+  .menu-item:hover {
+    background-color: #f0f0f0;
   }
 
   .graph-container {
