@@ -182,6 +182,7 @@ pub fn rebuild_hier_graph(state: &State<'_, RwLock<AppState>>) -> Result<()> {
     let mut new_nodes = vec![];
     let mut new_edges = HashSet::new();
     let mut original_ids = vec![];
+    let mut group_ids = HashMap::new();
 
     for edge in &pdg.edges {
         // check if from node has a hierarchical node
@@ -204,6 +205,7 @@ pub fn rebuild_hier_graph(state: &State<'_, RwLock<AppState>>) -> Result<()> {
         let new_from_index = *node_to_index.entry(from_pdg_node.clone()).or_insert_with(|| {
             new_nodes.push(from_pdg_node);
             if from_is_group {
+                group_ids.insert(new_nodes.len()-1, from_hier.clone());
                 original_ids.push(from_hier.read().unwrap().group_id);
             } else {
                 original_ids.push(edge.from as usize);
@@ -215,6 +217,7 @@ pub fn rebuild_hier_graph(state: &State<'_, RwLock<AppState>>) -> Result<()> {
         let new_to_index = *node_to_index.entry(to_pdg_node.clone()).or_insert_with(|| {
             new_nodes.push(to_pdg_node);
             if to_is_group {
+                group_ids.insert(new_nodes.len()-1, to_hier.clone());
                 original_ids.push(to_hier.read().unwrap().group_id);
             } else {
                 original_ids.push(edge.to as usize);
@@ -251,6 +254,7 @@ pub fn rebuild_hier_graph(state: &State<'_, RwLock<AppState>>) -> Result<()> {
     
     vgraph.current_hier_dpdg = Some(HierarchicalGraph {
         dpdg: ExportablePDG { vertices: new_nodes, edges: new_edges.into_iter().collect::<Vec<_>>() },
+        group_ids,
         original_ids,
         time_to_nodes,
         dep_to_edges,

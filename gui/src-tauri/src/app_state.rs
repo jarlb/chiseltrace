@@ -42,6 +42,7 @@ pub struct GraphNodeHierarchy {
 #[derive(Debug, Clone)]
 pub struct HierarchicalGraph {
     pub dpdg: ExportablePDG,
+    pub group_ids: HashMap<usize, Arc<RwLock<GraphNodeHierarchy>>>,
     pub original_ids: Vec<usize>,
     pub time_to_nodes: HashMap<i64, Vec<usize>>,
     pub dep_to_edges: HashMap<u32, Vec<usize>>,

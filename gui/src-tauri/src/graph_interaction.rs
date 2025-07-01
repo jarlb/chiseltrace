@@ -385,10 +385,24 @@ pub fn get_partial_graph(state: State<'_, RwLock<AppState>>, range_begin: u64, r
                 let default_vec = vec![];
                 let node_indices = hier_graph.time_to_nodes.get(&(timestamp as i64)).unwrap_or(&default_vec);
                 for idx in node_indices {
-                    // if !graph.shown_ids.contains(idx) {
-                    //     continue;
-                    // }
                     let node = &hier_graph.dpdg.vertices[*idx];
+                    if !graph.shown_ids.contains(&hier_graph.original_ids[*idx]) && node.kind != PDGSpecNodeKind::Definition {
+                        continue;
+                    }
+                    if let Some(hier_group) = hier_graph.group_ids.get(idx) {
+                        let guard = hier_group.read().unwrap();
+                        let group_ids = &guard.node_indices;
+                        let mut show_group = false;
+                        for id in group_ids {
+                            if graph.shown_ids.contains(id) {
+                                show_group = true;
+                                break;
+                            }
+                        }
+                        if !show_group {
+                            continue;
+                        }
+                    }
                     let edges = hier_graph.dep_to_edges.get(&(*idx as u32));
                     let group = format!("t{}", graph.n_timestamps - timestamp);
                     let incoming = edges.map_or(vec![], |edges| get_viewer_signals(&hier_graph.dpdg, edges, true));
