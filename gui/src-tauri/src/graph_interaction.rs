@@ -1,4 +1,4 @@
-use std::sync::RwLock;
+use std::{collections::HashSet, sync::RwLock};
 
 use anyhow::anyhow;
 use itertools::Itertools;
@@ -196,6 +196,7 @@ pub fn get_n_timeslots(state: State<'_, RwLock<AppState>>) -> Result<u64, String
     })
 }
 
+/// A command that toggles the expanded state of a group of nodes
 #[tauri::command]
 pub fn toggle_module(state: State<'_, RwLock<AppState>>, module_path: Vec<String>, timestamp: i64) -> Result<(), String> {
     map_err_to_string(|| {
@@ -233,6 +234,56 @@ pub fn toggle_module(state: State<'_, RwLock<AppState>>, module_path: Vec<String
     })
 }
 
+/// Sets the new graph head by calculating reachability and setting other nodes to hidden
+#[tauri::command]
+pub fn set_new_head(state: State<'_, RwLock<AppState>>, id: usize) -> Result<(), String> {
+    map_err_to_string(|| {
+        let mut state_guard = state.write().map_err(|_| anyhow!("RwLock poisoned"))?;
+        let Some(graph) = &mut state_guard.graph else {
+            anyhow::bail!("Uninitialized graph!");
+        };
+
+        // Some IDs may not correspond to a real node: ignore those
+        if id >= graph.dpdg.vertices.len() {
+            return Ok(());
+        }
+
+        let mut nodes_reached = HashSet::new();
+
+        let mut stack = vec![id];
+        while let Some(node_idx) = stack.pop() {
+            nodes_reached.insert(node_idx);
+            if let Some(edges) = graph.dep_to_edges.get(&(node_idx as u32)) {
+                for edge_idx in edges {
+                    let edge = &graph.dpdg.edges[*edge_idx];
+                    if !nodes_reached.contains(&(edge.to as usize)) {
+                        stack.push(edge.to as usize);
+                    }
+                }
+            }
+        }
+        
+        graph.shown_ids = nodes_reached;
+
+        Ok(())
+    })
+}
+
+/// Resets the graph head
+#[tauri::command]
+pub fn reset_head(state: State<'_, RwLock<AppState>>) -> Result<(), String> {
+    map_err_to_string(|| {
+        let mut state_guard = state.write().map_err(|_| anyhow!("RwLock poisoned"))?;
+        let Some(graph) = &mut state_guard.graph else {
+            anyhow::bail!("Uninitialized graph!");
+        };
+        
+        graph.shown_ids = (0..graph.dpdg.vertices.len()).collect();
+
+        Ok(())
+    })
+}
+
 #[tauri::command]
 pub fn get_partial_graph(state: State<'_, RwLock<AppState>>, range_begin: u64, range_end: u64) -> Result<String, String> {
     map_err_to_string(|| {
@@ -248,6 +299,9 @@ pub fn get_partial_graph(state: State<'_, RwLock<AppState>>, range_begin: u64, r
                 let default_vec = vec![];
                 let node_indices = graph.time_to_nodes.get(&(timestamp as i64)).unwrap_or(&default_vec);
                 for idx in node_indices {
+                    if !graph.shown_ids.contains(idx) {
+                        continue;
+                    }
                     let node = &graph.dpdg.vertices[*idx];
                     let edges = graph.dep_to_edges.get(&(*idx as u32));
                     let group = format!("t{}", graph.n_timestamps - timestamp);
@@ -331,6 +385,9 @@ pub fn get_partial_graph(state: State<'_, RwLock<AppState>>, range_begin: u64, r
                 let default_vec = vec![];
                 let node_indices = hier_graph.time_to_nodes.get(&(timestamp as i64)).unwrap_or(&default_vec);
                 for idx in node_indices {
+                    // if !graph.shown_ids.contains(idx) {
+                    //     continue;
+                    // }
                     let node = &hier_graph.dpdg.vertices[*idx];
                     let edges = hier_graph.dep_to_edges.get(&(*idx as u32));
                     let group = format!("t{}", graph.n_timestamps - timestamp);
@@ -365,8 +422,10 @@ pub fn get_partial_graph(state: State<'_, RwLock<AppState>>, range_begin: u64, r
                                 let outgoing = hier_graph.prov_to_edges.get(&edge.to).map_or(vec![], |edges| get_viewer_signals(&hier_graph.dpdg, edges, true));
                                 // If an edge goes to a node that is more than 3 timesteps away, instead add it as a long distance relation
                                 // It is important to generate a unique ID for these pseudo-nodes, because they MUST be unique in the graph
+                                let node_id = (hier_graph.original_ids[edge.to as usize] << 32) as u64 + 10 * graph.dpdg.vertices.len() as u64 + hier_graph.original_ids[edge.from as usize] as u64;
                                 viewer_graph.vertices.push(ViewerNode {
-                                    id: hier_graph.original_ids[edge.to as usize] as u64 + graph.dpdg.vertices.len() as u64 + hier_graph.original_ids[edge.from as usize] as u64,
+                                    // TODO: replace the 10x with an actual fix. This just shifts the duplicate ID problem elsewhere.
+                                    id: node_id,
                                     label: destination.name.clone(),
                                     group: group.clone(),
                                     module_path: destination.module_path.clone(),
@@ -382,7 +441,7 @@ pub fn get_partial_graph(state: State<'_, RwLock<AppState>>, range_begin: u64, r
                                 });
                                 viewer_graph.edges.push(ViewerEdge {
                                     from: hier_graph.original_ids[edge.from as usize] as u64,
-                                    to:  hier_graph.original_ids[edge.to as usize] as u64 + graph.dpdg.vertices.len() as u64 + hier_graph.original_ids[edge.from as usize] as u64,
+                                    to:  node_id,
                                     arrows: "to".into(),
                                     color: EdgeColour::from(edge.kind),
                                     dotted: edge.clocked,

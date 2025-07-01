@@ -262,14 +262,24 @@ pub fn pdg_convert_to_source(pdg: ExportablePDG, verbose_name: bool, is_dpdg: bo
                 v.file == vert.file && v.line == vert.line && v.name == vert.name) {
                     // There is a duplicate vertex. Now we have to check if the edges are the same.
                     // If so, we discard.
-                    let mut connected_edges_dup = HashSet::new();
+                    let mut connected_edges_dup_from = HashSet::new();
                     for check_edge in edges_by_from.get(&(*dup_idx as u32)).into_iter().flatten() {
-                        connected_edges_dup.insert(check_edge.to);
+                        connected_edges_dup_from.insert(check_edge.to);
+                    }
+                    let mut connected_edges_dup_to = HashSet::new();
+                    for check_edge in edges_by_to.get(&(*dup_idx as u32)).into_iter().flatten() {
+                        connected_edges_dup_to.insert(check_edge.from);
                     }
 
                     let mut duplicate = true;
                     for check_edge in edges_by_from.get(&(vert_idx as u32)).into_iter().flatten() {
-                        if !connected_edges_dup.contains(&check_edge.to) {
+                        if !connected_edges_dup_from.contains(&check_edge.to) {
+                            duplicate = false;
+                            break;
+                        }
+                    }
+                    for check_edge in edges_by_to.get(&(vert_idx as u32)).into_iter().flatten() {
+                        if !connected_edges_dup_to.contains(&check_edge.from) {
                             duplicate = false;
                             break;
                         }

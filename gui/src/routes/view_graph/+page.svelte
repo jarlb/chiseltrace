@@ -21,6 +21,7 @@
   let menuX = 0;
   let menuY = 0;
   let contextMenuNode: CustomNode | null = null;
+  let contextNodeTarget: boolean = false;
 
   interface Timestamp {
     id: string;
@@ -149,6 +150,20 @@
     }
   }
 
+  async function setNewHead() {
+    if (contextMenuNode !== null) {
+      await invoke("set_new_head", {id: contextMenuNode.id});
+      await updateGraph(true);
+      showMenu = false;
+    }
+  }
+
+  async function resetGraph() {
+    await invoke("reset_head", {});
+    await updateGraph(true);
+    showMenu = false;
+  }
+
   // Turn off the physics for all nodes in view.
   function freezeAllNodes() {
     const updates = nodes.getIds().map(id => {
@@ -199,12 +214,14 @@
 
       // Right click callback
       network.on("oncontext", function (params) {
+          params.event.preventDefault();
+          showMenu = true;
+          menuX = params.event.pageX;
+          menuY = params.event.pageY;
+          contextNodeTarget = false;
           let nodeID = network.getNodeAt(params.pointer.DOM);
           if (nodeID !== undefined && nodeID !== null && !Array.isArray(nodeID)) {
-            params.event.preventDefault();
-            showMenu = true;
-            menuX = params.event.pageX;
-            menuY = params.event.pageY;
+            contextNodeTarget = true;
             let node = nodes.get(nodeID);
             contextMenuNode = node;
             console.log('Single node found:', contextMenuNode);
@@ -390,8 +407,12 @@
     style={`left: ${menuX}px; top: ${menuY}px`}
     on:click|stopPropagation
   >
-    <div class="menu-item" on:click={() => toggleModule()}>Toggle module</div>
-    <div class="menu-item" on:click={() => alert('Option 2 clicked')}>Make new head</div>
+    {#if contextNodeTarget}
+      <div class="menu-item" on:click={async () => toggleModule()}>Toggle module</div>
+      <div class="menu-item" on:click={async () => setNewHead()}>Make new head</div>
+    {:else}
+      <div class="menu-item" on:click={async () => resetGraph()}>Reset graph</div>
+    {/if}
     <div class="menu-item" on:click={closeMenu}>Close</div>
   </div>
 {/if}

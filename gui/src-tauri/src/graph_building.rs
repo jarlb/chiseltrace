@@ -1,22 +1,11 @@
-use std::{collections::{HashMap, HashSet}, fs::{read_to_string, File}, io::BufReader, sync::{Arc, RwLock, Weak}, time::SystemTime};
+use std::{collections::{HashMap, HashSet}, fs::{read_to_string, File}, io::BufReader, sync::{Arc, RwLock}, time::SystemTime};
 
 use program_slicer_lib::{conversion::{dpdg_make_exportable, pdg_convert_to_source}, graphbuilder::{GraphBuilder, GraphProcessingType}, pdg_spec::{ExportablePDG, ExportablePDGNode, PDGSpec}, sim_data_injection::TywavesInterface};
 use serde::Deserialize;
 use tauri::State;
 use anyhow::{anyhow, Result};
 
-use crate::{app_state::{AppState, HierarchicalGraph, ViewableGraph}, errors::map_err_to_string_async};
-
-#[derive(Debug, Clone)]
-pub struct GraphNodeHierarchy {
-    pub instance_name: String,
-    pub expanded: bool,
-    pub pdg_node: ExportablePDGNode,
-    pub node_indices: Vec<usize>,
-    pub children: Vec<Arc<RwLock<GraphNodeHierarchy>>>,
-    pub parent: Option<Weak<RwLock<GraphNodeHierarchy>>>,
-    pub group_id: usize // ID for vis.js
-}
+use crate::{app_state::{AppState, GraphNodeHierarchy, HierarchicalGraph, ViewableGraph}, errors::map_err_to_string_async};
 
 #[tauri::command]
 pub async fn make_dpdg(state: State<'_, RwLock<AppState>>) -> Result<(), String> {
@@ -71,7 +60,11 @@ pub async fn make_dpdg(state: State<'_, RwLock<AppState>>) -> Result<(), String>
             println!("Made DPDG exportable");
 
             // Convert to source language
-            let mut converted_pdg = pdg_convert_to_source(dpdg, false, true);
+            let mut converted_pdg = if !pdg_config.fir_repr {
+                 pdg_convert_to_source(dpdg, false, true)
+            } else {
+                dpdg
+            };
 
             println!("Conversion: {}", (now.elapsed().unwrap().as_nanos() as f64) / 1e6);
             now = SystemTime::now();
@@ -145,7 +138,8 @@ pub async fn make_dpdg(state: State<'_, RwLock<AppState>>) -> Result<(), String>
             }
 
             let viewable_graph = ViewableGraph {
-                dpdg: converted_pdg,
+                dpdg: converted_pdg.clone(),
+                shown_ids: (0..converted_pdg.vertices.len()).collect(),
                 time_to_nodes,
                 dep_to_edges,
                 prov_to_edges,
@@ -167,7 +161,7 @@ pub async fn make_dpdg(state: State<'_, RwLock<AppState>>) -> Result<(), String>
         Ok(())
     }).await
 }
-
+ 
 /// Rebuilds the DPDG that is currently being displayed based on the hierarchical levels that are expanded.
 pub fn rebuild_hier_graph(state: &State<'_, RwLock<AppState>>) -> Result<()> {
     let mut state_guard = state.write().map_err(|_| anyhow!("RwLock poisoned"))?;
@@ -187,7 +181,6 @@ pub fn rebuild_hier_graph(state: &State<'_, RwLock<AppState>>) -> Result<()> {
     let mut node_to_index = HashMap::new();
     let mut new_nodes = vec![];
     let mut new_edges = HashSet::new();
-    let mut group_nodes = HashMap::new();
     let mut original_ids = vec![];
 
     for edge in &pdg.edges {
@@ -211,7 +204,6 @@ pub fn rebuild_hier_graph(state: &State<'_, RwLock<AppState>>) -> Result<()> {
         let new_from_index = *node_to_index.entry(from_pdg_node.clone()).or_insert_with(|| {
             new_nodes.push(from_pdg_node);
             if from_is_group {
-                group_nodes.insert(new_nodes.len()-1, from_hier.clone());
                 original_ids.push(from_hier.read().unwrap().group_id);
             } else {
                 original_ids.push(edge.from as usize);
@@ -223,7 +215,6 @@ pub fn rebuild_hier_graph(state: &State<'_, RwLock<AppState>>) -> Result<()> {
         let new_to_index = *node_to_index.entry(to_pdg_node.clone()).or_insert_with(|| {
             new_nodes.push(to_pdg_node);
             if to_is_group {
-                group_nodes.insert(new_nodes.len()-1, to_hier.clone());
                 original_ids.push(to_hier.read().unwrap().group_id);
             } else {
                 original_ids.push(edge.to as usize);
@@ -243,9 +234,6 @@ pub fn rebuild_hier_graph(state: &State<'_, RwLock<AppState>>) -> Result<()> {
         new_edges.insert(new_edge);
     }
 
-    let set: HashSet<_> = original_ids.clone().into_iter().collect();
-    println!("ids len {}, set ids len: {}", original_ids.len(), set.len());
-
     let mut time_to_nodes = HashMap::new();
     for (idx, v) in new_nodes.iter().enumerate() {
         time_to_nodes.entry(v.timestamp).and_modify(|nodes: &mut Vec<usize>| nodes.push(idx)).or_insert(vec![idx]);
@@ -263,7 +251,6 @@ pub fn rebuild_hier_graph(state: &State<'_, RwLock<AppState>>) -> Result<()> {
     
     vgraph.current_hier_dpdg = Some(HierarchicalGraph {
         dpdg: ExportablePDG { vertices: new_nodes, edges: new_edges.into_iter().collect::<Vec<_>>() },
-        group_nodes,
         original_ids,
         time_to_nodes,
         dep_to_edges,

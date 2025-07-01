@@ -39,14 +39,21 @@ pub struct Args {
     #[clap(short, long, value_delimiter = ' ', num_args = 1..)]
     pub extra_scopes: Option<Vec<String>>,
 
+    /// Sets a maximumum amount of timesteps to analyse
     #[arg(long)]
     pub max_timesteps: Option<u64>,
 
+    /// Only trace data dependencies
     #[arg(long)]
     pub data_only: Option<bool>,
 
+    /// Enables hierarchical grouping
     #[arg(long)]
-    pub hier_grouping: Option<bool>
+    pub hier_grouping: Option<bool>,
+
+    /// Disables conversion to Chisel representation
+    #[arg(long)]
+    pub fir: Option<bool>
 }
 
 impl Args {
