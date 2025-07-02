@@ -1,10 +1,18 @@
+use core::slice;
 use std::{cell::RefCell, collections::{BTreeMap, HashMap, HashSet}, rc::Rc};
 use itertools::Itertools;
 use crate::{graphbuilder::DynPDGNode, pdg_spec::{ExportablePDG, ExportablePDGEdge, ExportablePDGNode, PDGSpecEdgeKind, PDGSpecNodeKind}};
 
+/// Converts a (D)PDG in FIRRTL representation to Chisel representation based on FIRRTL source locator info.
 pub fn pdg_convert_to_source(pdg: ExportablePDG, verbose_name: bool, is_dpdg: bool) -> ExportablePDG {
+    // NOTE: This function operates on a two-list representation of the PDG. It might be worthwhile to switch to a linked
+    // memory representation in the future, as many of the operations performed here would be easier. Even just a simple
+    // adjecency list representation would probably be a lot better than what it is now.
+
+
     // Here, we convert the PDG from FIRRTL representation to source representation.
-    // The only source information that is available is the source file and line mapping (TODO: ALSO CHECK THE CHARACTER INDEX!!)
+    // The only source information that is available is the source file and line mapping (char index *may* be used, but also results in
+    // more erroneous groups)
     // Based on this, we can group nodes that belong to the same source statement. One issue is that
     // multiple source statements may exist on the same line. This is not yet addressed by this tool.
     // For example, also signals of type Bundle have the same source mapping to the definition of the entire bundle.
@@ -208,9 +216,10 @@ pub fn pdg_convert_to_source(pdg: ExportablePDG, verbose_name: bool, is_dpdg: bo
                 PDGSpecNodeKind::Definition
             }  
         };
-        let v0 = &g[0].0;
+        let mut v0 = &g[0].0;
         let filename = v0.file.split("/").last().unwrap();
         let node_name = if let Some((stmt, _)) = primary_statement {
+            v0 = stmt;
             if verbose_name {
                 format!("{} at t={} ({}:{})", stmt.name, stmt.timestamp, filename, stmt.line)
             } else {
@@ -236,7 +245,7 @@ pub fn pdg_convert_to_source(pdg: ExportablePDG, verbose_name: bool, is_dpdg: bo
         .unique().collect::<Vec<_>>()
     };
 
-    // There is one final problem: some constructs, such as lookup tables may generate an enormous amount of nodes.
+    // There is another problem: some constructs, such as lookup tables may generate an enormous amount of nodes.
     // Most of these have been merged at this point, but there may still be some that are not. These nodes are
     // marked as non-chisel statements and can therefore not contain simulation data. It is best to merge them for clarity.
     // To do this, we will search each timestep for duplicate non-chisel statements. We will then merge them into one and
@@ -328,8 +337,74 @@ pub fn pdg_convert_to_source(pdg: ExportablePDG, verbose_name: bool, is_dpdg: bo
         }
     }).collect::<Vec<_>>();
 
+    // We add some more nodes to the delete list here. This has to do with the fact that during grouping, index edges are not traversed.
+    // This means that groups might be generated that should be grouped together.
+    // TODO: this goes for the one above as well. I really don't like the way the graph is being processed.
+    // This function should move to a different graph representation.
+
+    let mut removed_indices = vec![];
+    let index_edges = remapped_edges.iter().filter(|e| e.kind == PDGSpecEdgeKind::Index);
+    for edge in index_edges {
+        let from_node = &pruned_verts[edge.from as usize];
+        let to_node = &pruned_verts[edge.to as usize];
+        if from_node.file == to_node.file && from_node.line == to_node.line {
+            // These should have been merged. Mark to node for deletion
+            removed_indices.push(edge.to as usize);
+        }
+    }
+
+    // Redirect the edges
+    edges_by_to.clear();
+    edges_by_from.clear();
+    for edge in &remapped_edges {
+        edges_by_from.entry(edge.from).and_modify(|x| x.push(edge)).or_insert(vec![edge]);
+        edges_by_to.entry(edge.to).and_modify(|x| x.push(edge)).or_insert(vec![edge]);
+    }
+    let redirected_edges = remapped_edges.iter().flat_map(|e| {
+        if removed_indices.contains(&(e.to as usize)) {
+            // Redirect this edge to the dependencies of the removed node
+            let redirected = edges_by_from.get(&e.to).into_iter().flatten()
+                .map(|e_re| ExportablePDGEdge {from: e.from, to: e_re.to, kind: PDGSpecEdgeKind::Index, clocked: e_re.clocked})
+                .collect::<Vec<_>>();
+            redirected
+        } else {
+            vec![e.clone()]
+        }
+    }).collect::<Vec<_>>();
+
+    removed_indices.sort();
+    removed_indices.reverse();
+    let mut new_pruned_verts = pruned_verts.clone();
+    for i in &removed_indices {
+        new_pruned_verts.remove(*i);
+    }
+
+    let mut edge_remap: HashMap<usize, Option<usize>> = HashMap::new();
+    let mut removed_counter = 0;
+    for i in 0..pruned_verts.len() {
+        edge_remap.insert(i,if removed_indices.contains(&i) {
+            removed_counter += 1;
+            None
+        } else {
+            Some(i - removed_counter)
+        });
+    }
+
+    let remapped_edges = redirected_edges.iter().filter_map(|e| {
+        let remap_to = edge_remap[&(e.to as usize)];
+        let remap_from = edge_remap[&(e.from as usize)];
+
+        if let (Some(to), Some(from)) = (remap_to, remap_from) {
+            Some(ExportablePDGEdge{from: from as u32, to: to as u32, ..e.clone()})
+        } else {
+            None
+        }
+    }).collect::<Vec<_>>();
+
+
+
     ExportablePDG {
-        vertices: pruned_verts,
+        vertices: new_pruned_verts,
         edges: remapped_edges
     }
 }
