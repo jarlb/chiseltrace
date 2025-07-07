@@ -1,6 +1,6 @@
 use std::{collections::{HashMap, HashSet}, fs::{read_to_string, File}, io::BufReader, sync::{Arc, RwLock}, time::SystemTime};
 
-use program_slicer_lib::{conversion::{dpdg_make_exportable, pdg_convert_to_source}, graphbuilder::{GraphBuilder, GraphProcessingType}, pdg_spec::{ExportablePDG, ExportablePDGNode, PDGSpec}, sim_data_injection::TywavesInterface};
+use chiseltrace_rs::{conversion::{dpdg_make_exportable, pdg_convert_to_source}, graphbuilder::{GraphBuilder, GraphProcessingType}, pdg_spec::{ExportablePDG, ExportablePDGNode, PDGSpec}, sim_data_injection::TywavesInterface};
 use serde::Deserialize;
 use tauri::State;
 use anyhow::{anyhow, Result};
@@ -290,7 +290,7 @@ fn get_highest_hier_node(hierarchy: &Arc<RwLock<GraphNodeHierarchy>>) -> Option<
 }
 
 fn create_hier_pdg_node(name: String, timestamp: i64, module_path: Vec<String>) -> ExportablePDGNode {
-    ExportablePDGNode { file: "".into(), line: 0, char: 0, name, kind: program_slicer_lib::pdg_spec::PDGSpecNodeKind::Definition, clocked: false, module_path, related_signal: None, sim_data: None, timestamp, is_chisel_assignment: false }
+    ExportablePDGNode { file: "".into(), line: 0, char: 0, name, kind: chiseltrace_rs::pdg_spec::PDGSpecNodeKind::Definition, clocked: false, module_path, related_signal: None, sim_data: None, timestamp, is_chisel_assignment: false }
 }
 
 /// Builds a node hierarchy by first creating the hierarchy, then adding the nodes and making a reverse mapping

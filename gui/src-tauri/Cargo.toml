@@ -1,9 +1,10 @@
 [package]
-name = "chiseltrace"
+name = "chiseltrace-gui"
 version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
-edition = "2021"
+edition = "2024"
+description = "Graph viewer front-end for ChiselTrace"
+authors = ["Jarl Brand <jarl.brand@gmail.com>"]
+license = "Apache-2.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -24,7 +25,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = {version = "1.0", features = ["unbounded_depth"] }
 clap = { version = "4.5.31", features = ["derive"] }
 anyhow = "1.0.97"
-program_slicer_lib = { path = "../../slicer_lib" }
+chiseltrace-rs = { path = "../../chiseltrace-rs" }
 thiserror = "2.0.12"
 itertools = "0.14.0"
 mimalloc = "0.1.46"

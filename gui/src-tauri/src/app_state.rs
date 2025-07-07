@@ -1,6 +1,6 @@
 use std::{collections::{HashMap, HashSet}, path::PathBuf, sync::{Arc, RwLock, Weak}};
 
-use program_slicer_lib::{graphbuilder::CriterionType, pdg_spec::{ExportablePDG, ExportablePDGNode}};
+use chiseltrace_rs::{graphbuilder::CriterionType, pdg_spec::{ExportablePDG, ExportablePDGNode}};
 
 pub struct AppState {
     pub pdg_config: Option<PDGConfig>,

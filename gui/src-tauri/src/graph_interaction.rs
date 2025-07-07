@@ -2,7 +2,7 @@ use std::{collections::HashSet, sync::RwLock};
 
 use anyhow::anyhow;
 use itertools::Itertools;
-use program_slicer_lib::pdg_spec::{ExportablePDG, PDGSpecEdgeKind, PDGSpecNodeKind};
+use chiseltrace_rs::pdg_spec::{ExportablePDG, PDGSpecEdgeKind, PDGSpecNodeKind};
 use serde::Serialize;
 use tauri::State;
 

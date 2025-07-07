@@ -2,7 +2,7 @@ use std::path::Path;
 
 use clap::Parser;
 use anyhow::Result;
-use program_slicer_lib::{graphbuilder::CriterionType, util::parse_criterion};
+use chiseltrace_rs::{graphbuilder::CriterionType, util::parse_criterion};
 
 use crate::errors;
 

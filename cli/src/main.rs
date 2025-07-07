@@ -1,10 +1,10 @@
 use std::{collections::HashSet, fs::{read_to_string, File}, io::BufWriter, path::Path};
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use program_slicer_lib::{conversion::{dpdg_make_exportable, pdg_convert_to_source}, graphbuilder::GraphProcessingType, slicing::{pdg_slice, write_dynamic_slice, write_static_slice}, util::parse_criterion};
-use program_slicer_lib::graphbuilder::{GraphBuilder, CriterionType};
-use program_slicer_lib::pdg_spec::PDGSpec;
-use program_slicer_lib::sim_data_injection::TywavesInterface;
+use chiseltrace_rs::{conversion::{dpdg_make_exportable, pdg_convert_to_source}, graphbuilder::GraphProcessingType, slicing::{pdg_slice, write_dynamic_slice, write_static_slice}, util::parse_criterion};
+use chiseltrace_rs::graphbuilder::{GraphBuilder, CriterionType};
+use chiseltrace_rs::pdg_spec::PDGSpec;
+use chiseltrace_rs::sim_data_injection::TywavesInterface;
 use serde::Deserialize;
 
 #[derive(Parser, Debug)]
