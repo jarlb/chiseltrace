@@ -158,6 +158,13 @@
     }
   }
 
+  async function openIde() {
+    if (contextMenuNode !== null) {
+      await invoke("open_vs_code", {id: contextMenuNode.id});
+      showMenu = false;
+    }
+  }
+
   async function resetGraph() {
     await invoke("reset_head", {});
     await updateGraph(true);
@@ -410,6 +417,7 @@
     {#if contextNodeTarget}
       <div class="menu-item" on:click={async () => toggleModule()}>Toggle module</div>
       <div class="menu-item" on:click={async () => setNewHead()}>Make new head</div>
+      <div class="menu-item" on:click={async () => openIde()}>Show in VS Code</div>
     {:else}
       <div class="menu-item" on:click={async () => resetGraph()}>Reset graph</div>
     {/if}

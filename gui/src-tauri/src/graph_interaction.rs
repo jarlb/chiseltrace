@@ -1,4 +1,4 @@
-use std::{collections::HashSet, sync::RwLock};
+use std::{collections::HashSet, process::Command, sync::RwLock};
 
 use anyhow::anyhow;
 use itertools::Itertools;
@@ -284,6 +284,29 @@ pub fn reset_head(state: State<'_, RwLock<AppState>>) -> Result<(), String> {
     })
 }
 
+#[tauri::command]
+pub fn open_vs_code(state: State<'_, RwLock<AppState>>, id: usize) -> Result<(), String> {
+    map_err_to_string(|| {
+        let mut state_guard = state.write().map_err(|_| anyhow!("RwLock poisoned"))?;
+        let Some(graph) = &mut state_guard.graph else {
+            anyhow::bail!("Uninitialized graph!");
+        };
+        
+        if id >= graph.dpdg.vertices.len() {
+            return Ok(());
+        }
+
+        let node = &graph.dpdg.vertices[id as usize];
+        Command::new("code")
+            .arg("--goto")
+            .arg(format!("{}:{}", node.file, node.line))
+            .spawn()?;
+
+        Ok(())
+    })
+}
+
+/// Retrieves a part of the complete dpdg between a start and end timestamp
 #[tauri::command]
 pub fn get_partial_graph(state: State<'_, RwLock<AppState>>, range_begin: u64, range_end: u64) -> Result<String, String> {
     map_err_to_string(|| {

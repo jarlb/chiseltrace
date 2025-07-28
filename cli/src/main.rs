@@ -114,6 +114,7 @@ fn main() -> Result<()> {
             // let sliced = pdg_slice(pdg_raw, slice_criterion)?;
             let sliced  = pdg_raw;
             // write_pdg(&sliced, "out_pdg.json")?;
+            // println!("{:#?}", args);
 
             println!("Starting dynamic PDG building");
             let mut builder = GraphBuilder::new(vcd_path, extra_scopes.clone().unwrap_or(vec![]), sliced)?;

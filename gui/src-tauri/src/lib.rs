@@ -5,7 +5,7 @@ use anyhow::Result;
 
 use app_state::{AppState, PDGConfig};
 use graph_building::make_dpdg;
-use graph_interaction::{get_n_timeslots, get_partial_graph, toggle_module, set_new_head, reset_head};
+use graph_interaction::{get_n_timeslots, get_partial_graph, toggle_module, set_new_head, reset_head, open_vs_code};
 
 mod argument_parsing;
 mod errors;
@@ -38,7 +38,7 @@ pub fn run() -> Result<()> {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .manage(RwLock::new(state))
-        .invoke_handler(tauri::generate_handler![get_initial_route, make_dpdg, get_n_timeslots, get_partial_graph, toggle_module, set_new_head, reset_head])
+        .invoke_handler(tauri::generate_handler![get_initial_route, make_dpdg, get_n_timeslots, get_partial_graph, toggle_module, set_new_head, reset_head, open_vs_code])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
     Ok(())

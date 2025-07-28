@@ -1,5 +1,5 @@
 [package]
-name = "chiseltrace-gui"
+name = "chiseltrace"
 version = "0.1.0"
 edition = "2024"
 description = "Graph viewer front-end for ChiselTrace"

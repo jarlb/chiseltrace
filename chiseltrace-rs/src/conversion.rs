@@ -146,7 +146,7 @@ pub fn pdg_convert_to_source(pdg: ExportablePDG, verbose_name: bool, is_dpdg: bo
         e.to != e.from
     });
 
-    // This can only occur when the PDG being converted is a static PDG. The DPDG is a DAG, so this does not happen
+    // This can only occur when the PDG being converted is a static PDG. The DPDG is a DAG, so this does not happen for dynamic cases
     let self_dependencies = groups.iter().filter_map(|g| {
         let own_index = g[0].1 as u32;
         // Simple DFS to find if there is a clocked cycle in the group
@@ -401,7 +401,56 @@ pub fn pdg_convert_to_source(pdg: ExportablePDG, verbose_name: bool, is_dpdg: bo
         }
     }).collect::<Vec<_>>();
 
+    // Scan for conditional statements without proper name reconstruction
+    // This is a bit hacky and serves to rename conditionals that depend on a _T anonymous FIRRTL signal
+    // We probably want to do this during the actual name generation stage in Chisel instead.
+    edges_by_to.clear();
+    edges_by_from.clear();
+    for edge in &remapped_edges {
+        edges_by_from.entry(edge.from).and_modify(|x| x.push(edge)).or_insert(vec![edge]);
+        edges_by_to.entry(edge.to).and_modify(|x| x.push(edge)).or_insert(vec![edge]);
+    }
+    let old_verts = new_pruned_verts.clone(); // Bad workaround the borrow checker, fix later
 
+    for (id, vert) in new_pruned_verts.iter_mut().enumerate() {
+        if vert.kind == PDGSpecNodeKind::ControlFlow {
+            if let Some(signal_path) = &vert.related_signal {
+                if let Some(pred_name) = signal_path.signal_path.split(".").last() {
+                    if pred_name.starts_with("pred__T") {
+                        // Now we want to rename the node, so we scan for data dependencies of this node.
+                        let mut data_deps = vec![];
+                        for edge in edges_by_from.get(&(id as u32)).into_iter().flatten() {
+                            if edge.kind == PDGSpecEdgeKind::Data {
+                                if let Some(data_signal) = &old_verts[edge.to as usize].related_signal {
+                                    if let Some(data_signal_name) = data_signal.signal_path.split(".").last() {
+                                        let mut full_name = data_signal_name.to_string();
+                                        if data_signal.field_path.len() > 0 {
+                                            full_name += ".";
+                                            full_name += &data_signal.field_path;
+                                        }
+                                        data_deps.push(full_name);
+                                    }
+                                } else {
+                                    data_deps.push("anonStmt".into());
+                                }
+                            }
+                        }
+                        // Now that we have the data dependencies, we can construct a new name.
+                        let mut new_name = String::from("cond_on_[");
+                        let deps_len = data_deps.len();
+                        for (i, dep) in data_deps.into_iter().enumerate() {
+                            new_name += &dep;
+                            if i != deps_len -1 {
+                                new_name += "_and_"
+                            }
+                        }
+                        new_name += "]";
+                        vert.name = new_name
+                    }
+                }
+            }
+        }
+    }
 
     ExportablePDG {
         vertices: new_pruned_verts,
