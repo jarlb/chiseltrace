@@ -124,7 +124,7 @@ fn main() -> Result<()> {
             let dpdg = dpdg_make_exportable(dpdg);
             
             println!("Converting to source representation");
-            let mut converted_pdg = pdg_convert_to_source(dpdg, true, true);
+            let mut converted_pdg = pdg_convert_to_source(dpdg, false, true);
 
             println!("Adding tywaves info");
             let tywaves = TywavesInterface::new(Path::new(hgldd_path),
