@@ -1,9 +1,10 @@
-use std::{cell::RefCell, collections::{BTreeMap, HashMap}, fs::File, io::{self, BufReader}, path::Path, rc::Rc};
+use std::{cell::RefCell, collections::{HashMap, HashSet}, fs::File, io::{self, BufReader}, path::Path, rc::Rc};
+use itertools::Itertools;
 use serde::Serialize;
 use vcd::{Command as Command, IdCode};
 use anyhow::Result;
 
-use crate::{conversion::dpdg_make_exportable, pdg_spec::{ExportablePDG, PDGSpec, PDGSpecEdge, PDGSpecEdgeKind, PDGSpecNode, PDGSpecNodeKind}, errors::Error};
+use crate::{pdg_spec::{PDGSpec, PDGSpecEdge, PDGSpecEdgeKind, PDGSpecNode, PDGSpecNodeKind}, errors::Error};
 
 pub struct GraphBuilder {
     reader: VcdReader,
@@ -20,7 +21,8 @@ struct VcdReader {
     extra_scopes: Vec<String>,
     header: vcd::Header,
     clock: vcd::IdCode,
-    _reset: vcd::IdCode,
+    reset: vcd::IdCode,
+    reset_val: vcd::Value,
     current_time: i64,
     clock_val: vcd::Value,
     changes_buffer: Vec<ValueChange>,
@@ -37,14 +39,16 @@ struct ValueChange {
 
 #[derive(Debug)]
 struct PDGNode {
-    inner: PDGSpecNode,
+    inner: Rc<PDGSpecNode>,
     provides: Vec<(Rc<RefCell<PDGNode>>, PDGSpecEdge)>,
     dependencies: Vec<(Rc<RefCell<PDGNode>>, PDGSpecEdge)>
 }
 
+// A word of warning: if there are somehow cycles in the graph, the refcounted pointers WILL leak memory
+// This shouldn't happen though.
 #[derive(Debug, Serialize)]
 pub struct DynPDGNode {
-    pub inner: PDGSpecNode,
+    pub inner: Rc<PDGSpecNode>,
     pub timestamp: i64,
     pub dependencies: Vec<(Rc<RefCell<DynPDGNode>>, PDGSpecEdgeKind)>
 }
@@ -55,35 +59,58 @@ pub enum CriterionType {
     Signal(String)
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GraphProcessingType {
+    Normal, // The regular ChiselTrace options with data / control flow / index tracing
+    DataOnly, // An option for data only tracing, results in smaller graphs
+    Full // Also trace statement definitions. This is useful for exporting a full dynamic slice
+}
+
 impl GraphBuilder {
     pub fn new(vcd_path: impl AsRef<Path>, extra_scopes: Vec<String>, pdg: PDGSpec) -> Result<GraphBuilder> {
         let vcd_reader = VcdReader::new(vcd_path, extra_scopes)?;
 
         // Link up the nodes for easier processing
         let linked = pdg.vertices.iter().map(|v| {
-            Rc::new(RefCell::new(PDGNode {inner: v.clone(), provides: vec![], dependencies: vec![] }))
+            Rc::new(RefCell::new(PDGNode {inner: Rc::new(v.clone()), provides: vec![], dependencies: vec![] }))
         }).collect::<Vec<_>>();
 
+        // Compute adjecency lists (kind of) to reduce time complexity
+        let mut edges_by_from: HashMap<u32, Vec<_>> = HashMap::new();
+        let mut edges_by_to: HashMap<u32, Vec<_>> = HashMap::new();
+        for edge in &pdg.edges {
+            edges_by_from.entry(edge.from).or_default().push(edge);
+            edges_by_to.entry(edge.to).or_default().push(edge);
+        }
+
+
         for (node_idx, node) in linked.iter().enumerate() {
-            for edge in &pdg.edges {
-                if edge.from == node_idx as u32 {
-                    let mut node_ref = node.borrow_mut();
-                    node_ref.dependencies.push((linked[edge.to as usize].clone(), edge.clone()));
-                }
-                if edge.to == node_idx as u32 {
-                    node.borrow_mut().provides.push((linked[edge.from as usize].clone(), edge.clone()));
-                }
+            for edge in edges_by_from.get(&(node_idx as u32)).into_iter().flatten() {
+                let mut node_ref = node.borrow_mut();
+                node_ref.dependencies.push((linked[edge.to as usize].clone(), (*edge).clone()));
             }
+            for edge in edges_by_to.get(&(node_idx as u32)).into_iter().flatten() {
+                node.borrow_mut().provides.push((linked[edge.from as usize].clone(), (*edge).clone()));
+            }
+            // for edge in &pdg.edges {
+            //     if edge.from == node_idx as u32 {
+            //         let mut node_ref = node.borrow_mut();
+            //         node_ref.dependencies.push((linked[edge.to as usize].clone(), edge.clone()));
+            //     }
+            //     if edge.to == node_idx as u32 {
+            //         node.borrow_mut().provides.push((linked[edge.from as usize].clone(), edge.clone()));
+            //     }
+            // }
         }
 
         Ok(GraphBuilder { reader: vcd_reader, pdg, linked_nodes: linked, pred_values: HashMap::new(), pred_idx_to_id: vec![], dependency_state: HashMap::new() })
     }
 
-    pub fn process(&mut self, criterion: &CriterionType, max_timesteps: Option<i64>, data_only: bool) -> Result<Rc<RefCell<DynPDGNode>>> {
+    pub fn process(&mut self, criterion: &CriterionType, max_timesteps: Option<i64>, processing_type: GraphProcessingType) -> Result<Rc<RefCell<DynPDGNode>>> {
         self.init_predicates()?;
 
         let mut eof_reached = false;
-        let mut all_nodes = vec![];
+        let mut criterion_node = None;
 
         let mut delayed_statement_buffer: Vec<(i64, u32)> = vec![];
 
@@ -95,7 +122,7 @@ impl GraphBuilder {
             eof_reached = eof;
             let activated_statements = self.get_activated_statements(&c);
             let mut new_reg_providers: HashMap<String, Rc<RefCell<DynPDGNode>>> = HashMap::new();
-            let mut controlflow_providers: HashMap<PDGSpecNode, Rc<RefCell<DynPDGNode>>> = HashMap::new();
+            let mut controlflow_providers: HashMap<Rc<PDGSpecNode>, Rc<RefCell<DynPDGNode>>> = HashMap::new();
             let mut new_nodes = vec![];
 
             // Get the ready delayed statements
@@ -151,7 +178,7 @@ impl GraphBuilder {
                             if node.inner.kind == PDGSpecNodeKind::DataDefinition {
                                 // println!("Register init found");
                                 // Handle register resets.
-                                if corrected_timestamp == 0 {
+                                if corrected_timestamp == 0 || self.reader.reset_val == vcd::Value::V1 {
                                     // println!("Register with reset: {:?}", node.inner.name);
                                     dpdg_node.borrow_mut().timestamp -= 1;
                                     self.dependency_state.insert(symb.clone(), dpdg_node.clone());
@@ -180,7 +207,7 @@ impl GraphBuilder {
                 };
                 // A statement may depend on multiple statements that provide the same symbol.
                 // We only want to process the symbol once, otherwise we get duplicate dependencies.
-                let mut deps_processed = vec![];
+                let mut deps_processed = HashSet::new();
                 // println!("Statement {:?}. Dependencies: {:?}", node.borrow().inner.name, node.borrow().dependencies.iter().map(|d| d.0.borrow().inner.name.clone()).collect::<Vec<_>>());
                 for (dep_node, dep_edge) in &node.borrow().dependencies {
                     if let Some(ref assigns_to) = dep_node.borrow().inner.assigns_to {
@@ -193,7 +220,7 @@ impl GraphBuilder {
                         }
                     }
 
-                    if data_only && dep_edge.kind != PDGSpecEdgeKind::Data {
+                    if processing_type == GraphProcessingType::DataOnly && dep_edge.kind != PDGSpecEdgeKind::Data {
                         continue;
                     }
 
@@ -213,6 +240,16 @@ impl GraphBuilder {
 
                     if conditions_satisfied {
                         match dep_edge.kind {
+                            PDGSpecEdgeKind::Declaration => {
+                                // Only add if the graph processing type is "Full", because this is only required for slicing, not ChiselTrace itself
+                                if processing_type == GraphProcessingType::Full {
+                                    // Just create a new one. I know this is a bit of an afterthought, but this is a simple way to make
+                                    // the dynamic slicing work. It doesn't need further processing anyway, so we can create as many nodes
+                                    // as we want.
+                                    let dep = Rc::new(RefCell::new(DynPDGNode {inner: dep_node.borrow().inner.clone(), timestamp: corrected_timestamp - 1, dependencies: vec![]}));
+                                    dpdg_node.borrow_mut().dependencies.push((dep.clone(), dep_edge.kind));
+                                }
+                            }
                             PDGSpecEdgeKind::Data | PDGSpecEdgeKind::Index  => {
                                 // Data dependencies should not be resolved using snapshotted dependencies.
                                 let dep_state = if dep_edge.kind == PDGSpecEdgeKind::Data {
@@ -224,7 +261,7 @@ impl GraphBuilder {
                                     if let Some(dep) = dep_state.get(dep_str) {
                                         dpdg_node.borrow_mut().dependencies.push((dep.clone(), dep_edge.kind));
                                     }
-                                    deps_processed.push(dep_str.clone());
+                                    deps_processed.insert(dep_str.clone());
                                 }
                             }
                             PDGSpecEdgeKind::Conditional => {
@@ -249,7 +286,7 @@ impl GraphBuilder {
                     CriterionType::Statement(c) => n.borrow().inner.name.eq(c),
                     CriterionType::Signal(c) => n.borrow().inner.assigns_to.as_ref().map_or(false, |s| s.eq(c))
                 } {
-                    all_nodes.push(n);
+                    criterion_node = Some(n)
                 }
             }
             for (k,v) in new_reg_providers {
@@ -262,7 +299,7 @@ impl GraphBuilder {
         }
 
         // println!("Full graph: {:#?}", all_nodes[all_nodes.len()-1]);
-        println!("Amount of nodes: {}", all_nodes.len());
+        // println!("Amount of nodes: {}", all_nodes.len());
 
         // let exported_node = all_nodes.iter()
         //     .filter(|n| {
@@ -275,10 +312,7 @@ impl GraphBuilder {
         //     .ok_or(Error::StatementLookupError("Criterion not found in DPDG".into()))?;
             
         let exported_node = match criterion {
-            CriterionType::Statement(c) => {
-                all_nodes.iter().filter(|n| n.borrow().inner.name.eq(c))
-                    .max_by_key(|n| n.borrow().timestamp)
-            }
+            CriterionType::Statement(_) => criterion_node.as_ref(),
             // If we are looking for a signal, give the latest assignment.
             CriterionType::Signal(c) => self.dependency_state.get(c)
         }.ok_or(Error::StatementLookupError("Criterion not found in DPDG".into()))?;
@@ -341,11 +375,11 @@ impl VcdReader {
         reset_path.push("reset".into());
 
         let clock = header.find_var(&clock_path).ok_or(Error::ClockNotFoundError)?.code;
-        let _reset = header.find_var(&reset_path).ok_or(Error::ClockNotFoundError)?.code;
+        let reset = header.find_var(&reset_path).ok_or(Error::ClockNotFoundError)?.code;
 
         let probes = Self::find_probes(&header, &extra_scopes);
         
-        Ok(VcdReader { parser, extra_scopes, header, clock, _reset, current_time: 0, clock_val: vcd::Value::X, changes_buffer: vec![], probes, probe_values: HashMap::new(), probe_change_buffer: vec![] })
+        Ok(VcdReader { parser, extra_scopes, header, clock, reset, reset_val: vcd::Value::X, current_time: 0, clock_val: vcd::Value::X, changes_buffer: vec![], probes, probe_values: HashMap::new(), probe_change_buffer: vec![] })
     }
 
     fn find_probes(header: &vcd::Header, root_scope: &[String]) -> HashMap<IdCode, Vec<String>> {
@@ -419,6 +453,9 @@ impl VcdReader {
                         rising_edge_found = true;
                     }
                     self.clock_val = v;
+                }
+                Command::ChangeScalar(i, v) if i == self.reset => {
+                    self.reset_val = v;
                 }
                 Command::ChangeScalar(i, v) => {
                     // println!("Change in {:?}: {v}", i);

@@ -2,20 +2,9 @@ use std::path::Path;
 
 use clap::Parser;
 use anyhow::Result;
-use program_slicer_lib::graphbuilder::CriterionType;
+use chiseltrace_rs::{graphbuilder::CriterionType, util::parse_criterion};
 
 use crate::errors;
-
-
-fn parse_criterion(s: &str) -> Result<CriterionType, String> {
-    let (kind, value) = s.split_once(':')
-        .ok_or("Expected 'type:value' format")?;
-    match kind.to_lowercase().as_str() {
-        "statement" => Ok(CriterionType::Statement(value.into())),
-        "signal" => Ok(CriterionType::Signal(value.into())),
-        _ => Err(format!("Unknown criterion type '{}'", kind)),
-    }
-}
 
 /// A GUI program to visualize chisel dynamic program dependency graphs
 #[derive(Parser, Debug)]
@@ -50,11 +39,21 @@ pub struct Args {
     #[clap(short, long, value_delimiter = ' ', num_args = 1..)]
     pub extra_scopes: Option<Vec<String>>,
 
+    /// Sets a maximumum amount of timesteps to analyse
     #[arg(long)]
     pub max_timesteps: Option<u64>,
 
+    /// Only trace data dependencies
     #[arg(long)]
-    pub data_only: Option<bool>
+    pub data_only: Option<bool>,
+
+    /// Enables hierarchical grouping
+    #[arg(long)]
+    pub hier_grouping: Option<bool>,
+
+    /// Disables conversion to Chisel representation
+    #[arg(long)]
+    pub fir: Option<bool>
 }
 
 impl Args {

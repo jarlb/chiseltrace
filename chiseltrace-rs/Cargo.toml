@@ -1,7 +1,10 @@
 [package]
-name = "program_slicer_lib"
+name = "chiseltrace-rs"
 version = "0.1.0"
 edition = "2024"
+description = "Back-end data processing library for ChiselTrace front-ends"
+authors = ["Jarl Brand <jarl.brand@gmail.com>"]
+license = "Apache-2.0"
 
 [dependencies]
 anyhow = "1.0.97"

@@ -3,7 +3,7 @@
   import { invoke } from "@tauri-apps/api/core";
   import { Network } from 'vis-network/esnext';
   import { DataSet } from 'vis-data';
-  import type { Edge, Node, Options } from 'vis-network/esnext';
+  import type { Edge, Node, Options, Position } from 'vis-network/esnext';
   import 'vis-network/styles/vis-network.css';
 
   import CodeBlock from '../../lib/components/CodeBlock.svelte';
@@ -16,6 +16,12 @@
 
   let hoveredNode: any = null;
   let tooltipPosition = { x: 0, y: 0 };
+
+  let showMenu = false;
+  let menuX = 0;
+  let menuY = 0;
+  let contextMenuNode: CustomNode | null = null;
+  let contextNodeTarget: boolean = false;
 
   interface Timestamp {
     id: string;
@@ -32,6 +38,7 @@
 
   interface CustomNode extends Node {
     group: string;
+    modulePath: string[];
     timestamp: number;
     longDistance: boolean;
     code: string | null;
@@ -49,6 +56,7 @@
   let timestamps: Timestamp[] = [];
   const nodes = new DataSet<CustomNode>([]);
   const edges = new DataSet<Edge>([]);
+  let positionCache = new Map<string, Position>();
 
   function generateReverseIndexTimestamps(num_timestamps: number): Timestamp[] {
     const timestamps: Timestamp[] = [];
@@ -70,23 +78,54 @@
     return a.length === b.length && a.every((value, index) => value === b[index]);
   }
 
-  async function updateGraph() {
+  async function updateGraph(reset_graph: boolean = false) {
     const timestampsToLoad = getTimestampsToLoad();
-    if (!arraysEqual(timestampsToLoad, timestampsInGraph)) {
-      const removedTimestamps = timestampsInGraph.filter(item => !timestampsToLoad.includes(item));
-      const newTimestamps = timestampsToLoad.filter(item => !timestampsInGraph.includes(item));
+    if (!arraysEqual(timestampsToLoad, timestampsInGraph) || reset_graph) {
+      let removedTimestamps = timestampsInGraph.filter(item => !timestampsToLoad.includes(item));
+      let newTimestamps = timestampsToLoad.filter(item => !timestampsInGraph.includes(item));
+      if (reset_graph) {
+        removedTimestamps = timestampsToLoad;
+        newTimestamps = timestampsToLoad;
+      }
       const response = await invoke<string>("get_partial_graph", {rangeBegin: Math.min(...timestampsToLoad), rangeEnd: Math.max(...timestampsToLoad)});
       try {
         const g: ViewerGraph = JSON.parse(response);
         const nodesToRemove = nodes.get({
           filter: (node) => removedTimestamps.includes(node.timestamp)
         });
+        // save the old node positions
+        let oldPositions = network.getPositions(nodesToRemove.map(node => node.id));
+        Object.entries(oldPositions).forEach(([id, pos]) => {
+          positionCache.set(id, pos);
+        });
+        console.log(positionCache);
         nodes.remove(nodesToRemove.map(node => node.id));
 
         const nodesToAdd = g.vertices.flatMap(node => {
           if (newTimestamps.includes(node.timestamp)) {
-            return [node];
-          } else { return []; }
+            const oldPos = positionCache.get(node.id!.toString());
+            if (oldPos !== undefined) {
+              // Node has a saved position -> set the position and disable placement
+              return [{
+                ...node,
+                x: oldPos.x,
+                y: oldPos.y,
+                physics: false,
+                fixed: {
+                  x: false,
+                  y: false
+                }
+              }];
+            } else {
+              // New node without saved position -> automatic placement
+              return [{
+                ...node,
+                physics: true
+              }];
+            }
+          } else {
+            return [];
+          }
         });
         console.log(nodesToRemove);
         console.log(nodesToAdd);
@@ -101,6 +140,35 @@
       }
       timestampsInGraph = timestampsToLoad;
     }
+  }
+
+  async function toggleModule() {
+    if (contextMenuNode !== null) {
+      await invoke("toggle_module", {modulePath: contextMenuNode.modulePath, timestamp: contextMenuNode.timestamp});
+      await updateGraph(true);
+      showMenu = false;
+    }
+  }
+
+  async function setNewHead() {
+    if (contextMenuNode !== null) {
+      await invoke("set_new_head", {id: contextMenuNode.id});
+      await updateGraph(true);
+      showMenu = false;
+    }
+  }
+
+  async function openIde() {
+    if (contextMenuNode !== null) {
+      await invoke("open_vs_code", {id: contextMenuNode.id});
+      showMenu = false;
+    }
+  }
+
+  async function resetGraph() {
+    await invoke("reset_head", {});
+    await updateGraph(true);
+    showMenu = false;
   }
 
   // Turn off the physics for all nodes in view.
@@ -143,11 +211,29 @@
         }, 1000);  
       });
 
+      // Add the tooltip callback
       network.on("hoverNode", (event) => {
         console.log(event);
         hoveredNode = nodes.get(event.node);
         const pos = network.getPositions([event.node])[event.node];
         tooltipPosition = network.canvasToDOM(pos);
+      });
+
+      // Right click callback
+      network.on("oncontext", function (params) {
+          params.event.preventDefault();
+          showMenu = true;
+          menuX = params.event.pageX;
+          menuY = params.event.pageY;
+          contextNodeTarget = false;
+          let nodeID = network.getNodeAt(params.pointer.DOM);
+          if (nodeID !== undefined && nodeID !== null && !Array.isArray(nodeID)) {
+            contextNodeTarget = true;
+            let node = nodes.get(nodeID);
+            contextMenuNode = node;
+            console.log('Single node found:', contextMenuNode);
+          }
+
       });
 
       network.on("blurNode", () => {
@@ -219,20 +305,20 @@
       },
       physics: {
         enabled: true,
-        solver: 'barnesHut', // Use Barnes-Hut approximation
+        solver: 'barnesHut',
         stabilization: {
           enabled: true,
           iterations: 10,
           updateInterval: 1,
           fit: false
         },
-        barnesHut: {
-          gravitationalConstant: -1000,  // Overall repulsion strength
-          centralGravity: 0.0,         // Pull toward center
-          springLength: 150,           // Ideal edge length
-          springConstant: 0.005,        // Edge attraction strength (lower = weaker)
-          damping: 0.09,               // Friction
-          avoidOverlap: 1            // Node spacing
+        barnesHut: { // These really need some tweaking for a production app
+          gravitationalConstant: -1000, // Overall repulsion strength
+          centralGravity: 0.0, // Pull toward center
+          springLength: 150, // Ideal edge length
+          springConstant: 0.005, // Edge attraction strength (lower = weaker)
+          damping: 0.09, // Friction
+          avoidOverlap: 1 // Node spacing
         }
       },
       nodes: {
@@ -265,7 +351,7 @@
     }
     debounceTimer = setTimeout(async () => {
       await updateGraph();
-    }, 50); // Adjust timing as needed (milliseconds)
+    }, 50); // This is done to not overload the JS engine while the user scrolls, only update at the end of the scroll
 
     timelinePosition = Math.min(timestamps.length * 600 - scrollWrapper.clientWidth, Math.max(0, timelinePosition + event.deltaY));
     console.log(timelinePosition);
@@ -282,21 +368,21 @@
   }
 
   // Gets the ID's of the timeslots in view. Used to center the graph properly
-  function getTimeslotsInView(): string[] {
-    let slotsInView: string[] = [];
-    let pixelCounter = 0;
-    timestamps.forEach((timestamp) => {
-      pixelCounter += timestamp.width;
-      if (pixelCounter > timelinePosition && pixelCounter - timestamp.width < timelinePosition + scrollWrapper.clientWidth) {
-        slotsInView.push(timestamp.id);
-      }
-    });
-    console.log(slotsInView);
-    return slotsInView;
-  }
+  // No longer used, this is done in the back-end
+  // function getTimeslotsInView(): string[] {
+  //   let slotsInView: string[] = [];
+  //   let pixelCounter = 0;
+  //   timestamps.forEach((timestamp) => {
+  //     pixelCounter += timestamp.width;
+  //     if (pixelCounter > timelinePosition && pixelCounter - timestamp.width < timelinePosition + scrollWrapper.clientWidth) {
+  //       slotsInView.push(timestamp.id);
+  //     }
+  //   });
+  //   console.log(slotsInView);
+  //   return slotsInView;
+  // }
 
   // This function is responsible for determining the time stamps that should be loaded
-  // =========================================================================
   function getTimestampsToLoad(offset: number = 1800): number[] {
     let timeStampsInRange: number[] = [];
     let pixelCounter = 0;
@@ -308,7 +394,6 @@
     });
     return timeStampsInRange;
   }
-  // =========================================================================
 
   function handleWindowResize() {
     network.moveTo({
@@ -317,7 +402,28 @@
       animation: false
     });
   }
+
+  function closeMenu() {
+    showMenu = false;
+  }
 </script>
+
+{#if showMenu}
+  <div
+    class="context-menu"
+    style={`left: ${menuX}px; top: ${menuY}px`}
+    on:click|stopPropagation
+  >
+    {#if contextNodeTarget}
+      <div class="menu-item" on:click={async () => toggleModule()}>Toggle module</div>
+      <div class="menu-item" on:click={async () => setNewHead()}>Make new head</div>
+      <div class="menu-item" on:click={async () => openIde()}>Show in VS Code</div>
+    {:else}
+      <div class="menu-item" on:click={async () => resetGraph()}>Reset graph</div>
+    {/if}
+    <div class="menu-item" on:click={closeMenu}>Close</div>
+  </div>
+{/if}
 
 <div class="graph-container">
   <div class="scroll-wrapper" bind:this={scrollWrapper}>
@@ -340,7 +446,7 @@
       {#if hoveredNode}
       <div class="node-tooltip" style={`left: ${tooltipPosition.x}px; top: ${tooltipPosition.y}px`}>
         <h3>{hoveredNode.label}</h3>
-        <p>{hoveredNode.file}:{hoveredNode.line}</p>
+        <p style="max-width: 100%; word-break: break-all;">{hoveredNode.file}:{hoveredNode.line}</p>
         {#if hoveredNode.code}
           <CodeBlock code={hoveredNode.code}></CodeBlock>
         {/if}
@@ -391,6 +497,25 @@
     overflow: hidden;
   }
 
+  .context-menu {
+    position: fixed;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    z-index: 1000;
+    min-width: 120px;
+  }
+
+  .menu-item {
+    padding: 8px 12px;
+    cursor: pointer;
+  }
+
+  .menu-item:hover {
+    background-color: #f0f0f0;
+  }
+
   .graph-container {
     height: 100vh;
     overflow: hidden;
@@ -428,7 +553,7 @@
     left: 0;
     right: 0;
     height: 1px;
-    background-color: rgba(66, 153, 225, 0.2); /* Change color as needed */
+    background-color: rgba(66, 153, 225, 0.2);
     z-index: 51;
 }
 
