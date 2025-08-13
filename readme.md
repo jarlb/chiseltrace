@@ -41,9 +41,19 @@ This will enable you to build the ChiselTrace executable.
 
 ### Installing ChiselTrace Components
 
-To install Tywaves and ChiselTrace, run the `make install` command. This will automatically pull all required repositories and install all required components.
+To install Tywaves and ChiselTrace, run the `make all` command. This will automatically pull all required repositories and install all required components.
 
 To remove temporary files, run `make clean`.
+
+### FAQ
+
+This section shows some frequently encountered errors.
+
+- I get the following error: `Error: scala.reflect.internal.MissingRequirementError: object java.lang.Object in compiler mirror not found.`
+  - This is caused by a wrong Java version. The software is known to work with [Temurin JDK 21](https://adoptium.net/temurin/releases/). If the issue persists, add `export JAVA_HOME="/usr/lib/jvm/temurin-21-jdk"` to a setup script.
+- I get the following error: `circt.stage.phases.Exceptions$FirtoolNotFound: Error resolving firtool`
+  - This error is encountered when the CIRCT path is not set correctly. This is fixed by adding `export PATH="/home/<your_user_here>/.local/bin:$PATH"` to a setup script.
+
 
 ## Getting Started
 

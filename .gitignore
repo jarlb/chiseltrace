@@ -4,3 +4,4 @@
 *.vcd
 !/gui/**/*.json
 *.zip
+/tmp
