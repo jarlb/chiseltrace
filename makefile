@@ -1,5 +1,5 @@
 .PHONY: all make_tmp install_tywaves_chiseltrace install_chiseltrace clean
-TYWAVES_CHISEL_REPO = git@github.com:jarlb/tywaves-chisel.git
+TYWAVES_CHISEL_REPO = https://github.com/jarlb/tywaves-chisel.git
 CARGO_BIN_DIR = ~/.cargo/bin/
 
 all: install_tywaves_chiseltrace install_chiseltrace
