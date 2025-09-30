@@ -207,7 +207,7 @@ chiseltrace --slice-criterion signal:io.result --pdg-path ./pdg.json --vcd-path 
 
 ## Case-study
 
-The functionality of ChiselTrace has been demonstrated on [ChiselWatt](https://github.com/jarlb/chiselwatt). The repository contains [the updated version of ChiselWatt](https://github.com/rameloni/chiselwatt/tree/migrate-to-chiselsim) with a fault injected into one of the modules. A traceback of the fault can be seen below. More details can be found in the results section of the ChiselTrace Thesis.
+The functionality of ChiselTrace has been demonstrated on [this version ChiselWatt](https://github.com/jarlb/chiselwatt), which contains a fault injected into one of the modules. This version is based on a [ChiselWatt version](https://github.com/rameloni/chiselwatt/tree/migrate-to-chiselsim) that has been updated to work with newer Chisel versions. More details can be found in the results of the ChiselTrace paper.
 
 ![ChiselWatt example](./img/chiseltrace_chiselwatt_graph.png)
 
@@ -220,6 +220,12 @@ The functionality of ChiselTrace has been demonstrated on [ChiselWatt](https://g
 - Create alternative front-ends for ChiselTrace, such as a Visual Studio Code extension. Such an extension could enable a user to jump to the active driver of a signal, similar to how a jump to definition works.
 - Enable user-defined abstractions for data-flow. An example of this could be a communication transaction between components. An abstracted view could show only one data dependency for the entire transaction.
 - Extend ChiselTrace to other HGLs. The ChiselTrace front-end and chiseltrace-rs could be partially reused for an implementation for another language. One big challenge would be to come up with an alternative way to process at the FIRRTL level, as not all languages translate to a similar IR before compilation.
+
+## Citation
+
+If you want to refer to this work, please refer to the following publication:
+
+J. Brand, C. Cromjongh, H.P. Hofstee Z. Al-Ars, "ChiselTrace: Typed Behavioral Debugging in Chisel Through Signal Dependency Tracing", NorCAS, 2025
 
 ## License
 
