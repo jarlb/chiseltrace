@@ -1,6 +1,6 @@
 # ChiselTrace: Automatic Signal Dependency Tracing for Chisel
 
-This repository contains the ChiselTrace project. ChiselTrace is a source-level debugging tool for the Chisel hardware construction language. By automatically analysing and visualising simulation-time data- and control-flow dependencies between statements in the Chisel source code, ChiselTrace aims to reduce the amount of time spent tracing back faults to the root cause in the waveform viewer, thereby bringing the Chisel debugging ecosystem closer to that of classical HDLs.
+This repository contains the ChiselTrace project. ChiselTrace is a source-level debugging tool for the Chisel hardware construction language. By automatically analysing and visualising simulation-time data- and control-flow dependencies between statements in the Chisel source code, ChiselTrace aims to reduce the amount of time spent tracing back faults to the root cause in the waveform viewer, thereby improving the Chisel debugging experience.
 
 ChiselTrace builds on the [Tywaves](https://github.com/rameloni/tywaves-chisel) project, a typed waveform viewer for Chisel. ChiselTrace implements the following stages:
 
@@ -20,7 +20,7 @@ Build instructions are provided for Linux only. Although ChiselTrace may work un
 
 ### Dependencies
 
-To install ChiselTrace, Tywaves also needs to be installed. While it is technically possible to use ChiselTrace without Tywaves-Surfer, this is not recommended. Please make sure to install the [Tywaves requirements](https://github.com/jarlb/tywaves-chisel/tree/main?tab=readme-ov-file#prerequisites). For convenience, they are listed here as well:
+To install ChiselTrace, Tywaves also needs to be installed. While it is technically possible to use ChiselTrace without Tywaves-Surfer, this is not recommended. Please make sure to install the [Tywaves prerequisites](https://github.com/jarlb/tywaves-chisel/tree/main?tab=readme-ov-file#prerequisites). For convenience, they are listed here as well:
 
 > - [Make](https://www.gnu.org/software/make/)
 > - [Scala and sbt](https://docs.scala-lang.org/getting-started/sbt-track/getting-started-with-scala-and-sbt-on-the-command-line.html)
