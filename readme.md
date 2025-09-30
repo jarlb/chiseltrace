@@ -225,7 +225,7 @@ The functionality of ChiselTrace has been demonstrated on [this version ChiselWa
 
 If you want to refer to this work, please refer to the following publication:
 
-J. Brand, C. Cromjongh, H.P. Hofstee Z. Al-Ars, "ChiselTrace: Typed Behavioral Debugging in Chisel Through Signal Dependency Tracing", NorCAS, 2025
+J. Brand, C. Cromjongh, H.P. Hofstee, Z. Al-Ars, "ChiselTrace: Typed Behavioral Debugging in Chisel Through Signal Dependency Tracing", IEEE Nordic Circuits and Systems Conference, 2025
 
 ## License
 
